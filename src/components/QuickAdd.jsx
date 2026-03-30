@@ -1,5 +1,5 @@
 // ── Quick Add bar ──────────────────────────────────────────
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { Plus, Mic, MicOff, Calendar, Flag, Hash, AtSign } from 'lucide-react'
 import { useStore } from '../useStore.jsx'
 import { parseTaskInput } from '../utils/nlpParse.js'
@@ -8,7 +8,7 @@ import { useSpeech } from '../hooks/useSpeech.js'
 const PRIORITY_LABELS = ['none', 'low', 'med', 'high']
 const PRIORITY_COLORS = ['var(--text-4)', '#3b82f6', '#eab308', '#ef4444']
 
-export const QuickAdd = ({ inputRef, defaultProjectId }) => {
+export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
   const { createTask, state } = useStore()
   const [value, setValue] = useState('')
   const [parsed, setParsed] = useState(null)
@@ -23,11 +23,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId }) => {
   const handleChange = useCallback((e) => {
     const v = e.target.value
     setValue(v)
-    if (v.trim()) {
-      setParsed(parseTaskInput(v))
-    } else {
-      setParsed(null)
-    }
+    setParsed(v.trim() ? parseTaskInput(v) : null)
   }, [])
 
   const submit = useCallback(async () => {
@@ -44,21 +40,20 @@ export const QuickAdd = ({ inputRef, defaultProjectId }) => {
       if (found) projectId = found.id
     }
 
-    // Resolve tag names to ids (create if needed)
+    // Resolve tag names to existing ids
     const tagIds = []
     for (const tagName of p.tags) {
-      let found = state.tags.find(t => t.name.toLowerCase() === tagName.toLowerCase())
-      if (!found) {
-        // We'll just use the name as-is, no auto-create for now
-        continue
-      }
-      tagIds.push(found.id)
+      const found = state.tags.find(t => t.name.toLowerCase() === tagName.toLowerCase())
+      if (found) tagIds.push(found.id)
     }
+
+    // Use view's default due date if no date was parsed from input
+    const dueDate = p.dueDate || defaultDueDate || null
 
     await createTask({
       title: p.title || value.trim(),
       priority: p.priority,
-      dueDate: p.dueDate,
+      dueDate,
       dueTime: p.dueTime,
       projectId,
       tags: tagIds,
@@ -68,28 +63,38 @@ export const QuickAdd = ({ inputRef, defaultProjectId }) => {
     setValue('')
     setParsed(null)
     inputRef?.current?.focus()
-  }, [value, defaultProjectId, state.projects, state.tags, createTask, inputRef])
+  }, [value, defaultProjectId, defaultDueDate, state.projects, state.tags, createTask, inputRef])
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter') submit()
     if (e.key === 'Escape') { setValue(''); setParsed(null) }
   }, [submit])
 
+  // Show chips if something meaningful was parsed
   const hasParsed = parsed && (parsed.dueDate || parsed.priority > 0 || parsed.tags.length > 0 || parsed.projectName)
 
+  // Effective due date to preview (parsed or default)
+  const effectiveDueDate = parsed?.dueDate || (value.trim() ? defaultDueDate : null)
+
   return (
-    <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-light)' }}>
+    <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-light)' }}>
       <div
-        className="flex items-center gap-2 rounded-xl px-3 py-2"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
+        className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)',
+          transition: 'border-color .15s, box-shadow .15s',
+        }}
+        onFocus={() => {}}
       >
-        <Plus size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <Plus size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
         <input
           ref={inputRef}
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder='Add task… "Buy groceries tomorrow p2 #shopping"'
+          placeholder="Add a task…"
           style={{
             flex: 1,
             background: 'none',
@@ -106,41 +111,44 @@ export const QuickAdd = ({ inputRef, defaultProjectId }) => {
             className={`btn btn-ghost p-1 ${listening ? 'mic-listening' : ''}`}
             onClick={listening ? stopListening : startListening}
             aria-label={listening ? 'Stop listening' : 'Start voice input'}
-            style={{ borderRadius: '50%' }}
+            style={{ borderRadius: '50%', flexShrink: 0 }}
           >
-            {listening ? <MicOff size={15} style={{ color: 'var(--accent)' }} /> : <Mic size={15} />}
+            {listening
+              ? <MicOff size={14} style={{ color: 'var(--accent)' }} />
+              : <Mic size={14} style={{ color: 'var(--text-4)' }} />
+            }
           </button>
         )}
         {value && (
           <button
             className="btn btn-primary"
             onClick={submit}
-            style={{ padding: '4px 12px', fontSize: '.8rem' }}
+            style={{ padding: '3px 12px', fontSize: '.8rem', flexShrink: 0 }}
           >
             Add
           </button>
         )}
       </div>
 
-      {/* Parsed chips */}
-      {hasParsed && (
-        <div className="flex items-center gap-1.5 mt-1.5 px-1 flex-wrap">
-          {parsed.dueDate && (
+      {/* Parsed / default chips */}
+      {(hasParsed || (value.trim() && defaultDueDate && !parsed?.dueDate)) && (
+        <div className="flex items-center gap-1.5 mt-2 px-1 flex-wrap">
+          {effectiveDueDate && (
             <span className="tag-chip" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
-              <Calendar size={10} /> {parsed.dueDate}
+              <Calendar size={10} /> {effectiveDueDate === new Date().toISOString().slice(0,10) ? 'Today' : effectiveDueDate}
             </span>
           )}
-          {parsed.priority > 0 && (
+          {parsed?.priority > 0 && (
             <span className="tag-chip" style={{ background: PRIORITY_COLORS[parsed.priority] + '22', color: PRIORITY_COLORS[parsed.priority], border: `1px solid ${PRIORITY_COLORS[parsed.priority]}44` }}>
               <Flag size={10} /> {PRIORITY_LABELS[parsed.priority]}
             </span>
           )}
-          {parsed.tags.map(tag => (
+          {parsed?.tags.map(tag => (
             <span key={tag} className="tag-chip" style={{ background: 'var(--bg-surface)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
               <Hash size={10} /> {tag}
             </span>
           ))}
-          {parsed.projectName && (
+          {parsed?.projectName && (
             <span className="tag-chip" style={{ background: 'var(--bg-surface)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
               <AtSign size={10} /> {parsed.projectName}
             </span>

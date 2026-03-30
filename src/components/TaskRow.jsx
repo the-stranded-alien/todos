@@ -1,10 +1,9 @@
 // ── Task row ───────────────────────────────────────────────
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Play, Square, ChevronRight, ChevronDown, Calendar, Flag, RotateCcw } from 'lucide-react'
+import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw } from 'lucide-react'
 import { useStore } from '../useStore.jsx'
 
 const PRIORITY_COLORS = ['transparent', '#3b82f6', '#eab308', '#ef4444']
-const PRIORITY_LABELS = ['', 'low', 'med', 'high']
 
 const formatDuration = (ms) => {
   if (!ms) return null
@@ -20,8 +19,7 @@ const formatDate = (d) => {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
   if (d === today) return 'Today'
   if (d === tomorrow) return 'Tomorrow'
-  const date = new Date(d + 'T00:00:00')
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export const TaskRow = ({
@@ -38,16 +36,16 @@ export const TaskRow = ({
   dropTarget,
 }) => {
   const { state, completeTask, uncompleteTask, updateTask, startTimer, stopTimer, deleteTask } = useStore()
-  const [completing, setCompleting] = useState(false)
+  const [completing, setCompleting]   = useState(false)
   const [subtasksOpen, setSubtasksOpen] = useState(true)
   const [editingTitle, setEditingTitle] = useState(false)
-  const [titleVal, setTitleVal] = useState(task.title)
-  const titleRef = useRef(null)
+  const [titleVal, setTitleVal]       = useState(task.title)
+  const [hovered, setHovered]         = useState(false)
 
-  const subtasks = state.tasks.filter(t => t.parentId === task.id)
+  const subtasks    = state.tasks.filter(t => t.parentId === task.id && !t.completed)
   const hasSubtasks = subtasks.length > 0
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today    = new Date().toISOString().slice(0, 10)
   const isOverdue = task.dueDate && task.dueDate < today && !task.completed
   const isTimerRunning = task.timerStartedAt != null
 
@@ -60,43 +58,39 @@ export const TaskRow = ({
     return () => clearInterval(id)
   }, [isTimerRunning, task.timerStartedAt])
 
+  // Keep titleVal in sync when task changes externally
+  useEffect(() => {
+    if (!editingTitle) setTitleVal(task.title)
+  }, [task.title, editingTitle])
+
   const handleCheck = useCallback(async (e) => {
     e.stopPropagation()
-    if (task.completed) {
-      await uncompleteTask(task.id)
-      return
-    }
+    if (task.completed) { await uncompleteTask(task.id); return }
     setCompleting(true)
     setTimeout(async () => {
       await completeTask(task.id)
       setCompleting(false)
-    }, 300)
+    }, 280)
   }, [task.completed, task.id, completeTask, uncompleteTask])
 
   const handleTitleBlur = useCallback(async () => {
     setEditingTitle(false)
-    if (titleVal.trim() !== task.title) {
-      if (!titleVal.trim()) {
-        await deleteTask(task.id)
-      } else {
-        await updateTask(task.id, { title: titleVal.trim() })
-      }
-    }
+    const trimmed = titleVal.trim()
+    if (trimmed === task.title) return
+    if (!trimmed) await deleteTask(task.id)
+    else          await updateTask(task.id, { title: trimmed })
   }, [titleVal, task.title, task.id, updateTask, deleteTask])
 
   const handleTitleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter') { e.target.blur() }
-    if (e.key === 'Escape') { setTitleVal(task.title); setEditingTitle(false) }
-    if (e.key === 'Backspace' && !titleVal) {
-      e.preventDefault()
-      deleteTask(task.id)
-    }
+    if (e.key === 'Enter')   { e.target.blur() }
+    if (e.key === 'Escape')  { setTitleVal(task.title); setEditingTitle(false) }
+    if (e.key === 'Backspace' && !titleVal) { e.preventDefault(); deleteTask(task.id) }
   }, [task.title, task.id, titleVal, deleteTask])
 
   const handleTimerToggle = useCallback(async (e) => {
     e.stopPropagation()
     if (isTimerRunning) await stopTimer(task.id)
-    else await startTimer(task.id)
+    else                await startTimer(task.id)
   }, [isTimerRunning, task.id, startTimer, stopTimer])
 
   const timerDisplay = isTimerRunning
@@ -107,19 +101,33 @@ export const TaskRow = ({
     .map(tid => state.tags.find(t => t.id === tid))
     .filter(Boolean)
 
-  const project = task.projectId ? state.projects.find(p => p.id === task.projectId) : null
+  const hasMeta = task.dueDate || task.recurring || tagObjs.length > 0 || timerDisplay
 
   return (
-    <div style={{ marginLeft: depth * 20 }}>
+    <div style={{ marginLeft: depth * 24 }}>
       <div
-        className={`group flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer priority-border-${task.priority} ${completing ? 'completing' : ''} ${dragging ? 'dragging' : ''} ${dropTarget === 'above' ? 'drop-target-above' : ''} ${dropTarget === 'below' ? 'drop-target-below' : ''}`}
+        className={`group ${completing ? 'completing' : ''} ${dragging ? 'dragging' : ''} ${dropTarget === 'above' ? 'drop-target-above' : ''}`}
         style={{
-          background: isSelected ? 'var(--accent-soft)' : 'transparent',
-          borderRight: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
-          transition: 'background .1s',
+          display: 'flex',
+          alignItems: hasMeta ? 'flex-start' : 'center',
+          gap: 8,
+          padding: '9px 10px',
+          marginBottom: 3,
+          borderRadius: 10,
+          cursor: 'pointer',
+          background: isSelected
+            ? 'var(--accent-soft)'
+            : hovered ? 'var(--bg-card)' : 'transparent',
+          border: `1px solid ${isSelected ? 'var(--accent-border)' : hovered ? 'var(--border)' : 'transparent'}`,
+          boxShadow: isSelected || hovered ? 'var(--shadow-sm)' : 'none',
+          borderLeft: `3px solid ${PRIORITY_COLORS[task.priority]}`,
+          transition: 'background .1s, border-color .1s, box-shadow .1s',
           userSelect: 'none',
+          opacity: task.completed ? 0.6 : 1,
         }}
         onClick={() => onSelect(task.id)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         draggable={!editingTitle}
         onDragStart={e => { e.dataTransfer.setData('taskId', task.id); onDragStart?.(task.id) }}
         onDragOver={e => { e.preventDefault(); onDragOver?.(task.id) }}
@@ -127,67 +135,62 @@ export const TaskRow = ({
         role="row"
         aria-label={task.title}
         tabIndex={0}
-        onKeyDown={e => {
-          if (e.key === ' ') { e.preventDefault(); handleCheck(e) }
-        }}
+        onKeyDown={e => { if (e.key === ' ') { e.preventDefault(); handleCheck(e) } }}
       >
-        {/* Bulk checkbox */}
+        {/* Bulk checkbox — shows on hover */}
         <input
           type="checkbox"
           checked={isChecked}
-          onChange={e => { e.stopPropagation(); onBulkToggle(task.id) }}
-          className="opacity-0 group-hover:opacity-100 w-3 h-3 flex-shrink-0"
-          style={{ accentColor: 'var(--accent)' }}
+          onChange={e => { e.stopPropagation(); onBulkToggle?.(task.id) }}
+          className="opacity-0 group-hover:opacity-100"
+          style={{ width: 13, height: 13, flexShrink: 0, marginTop: 2, accentColor: 'var(--accent)', cursor: 'pointer' }}
           aria-label={`Select ${task.title}`}
           onClick={e => e.stopPropagation()}
         />
 
-        {/* Subtask toggle */}
+        {/* Subtask collapse toggle */}
         {hasSubtasks ? (
           <button
-            className="btn btn-ghost p-0"
+            style={{ width: 14, height: 14, flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}
             onClick={e => { e.stopPropagation(); setSubtasksOpen(v => !v) }}
-            aria-label={subtasksOpen ? 'Collapse subtasks' : 'Expand subtasks'}
-            style={{ width: 16, height: 16, flexShrink: 0, color: 'var(--text-4)' }}
+            aria-label={subtasksOpen ? 'Collapse' : 'Expand'}
           >
             {subtasksOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </button>
         ) : (
-          <div style={{ width: 16, flexShrink: 0 }} />
+          <div style={{ width: 14, flexShrink: 0 }} />
         )}
 
-        {/* Checkbox */}
+        {/* Completion circle */}
         <button
           className={`custom-checkbox ${task.completed ? 'checked' : ''}`}
           onClick={handleCheck}
           aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
-          style={{ borderColor: task.priority > 0 ? PRIORITY_COLORS[task.priority] : undefined }}
+          style={{
+            marginTop: hasMeta ? 1 : 0,
+            borderColor: task.priority > 0 ? PRIORITY_COLORS[task.priority] : undefined,
+          }}
         >
           {task.completed && (
-            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="9" height="7" viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M1 4l3 3 5-6" />
             </svg>
           )}
         </button>
 
-        {/* Title */}
+        {/* Title + meta */}
         <div className="flex-1 min-w-0">
           {editingTitle ? (
             <input
-              ref={titleRef}
               value={titleVal}
               onChange={e => setTitleVal(e.target.value)}
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
               autoFocus
               style={{
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-1)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '.875rem',
-                width: '100%',
+                background: 'none', border: 'none', outline: 'none',
+                color: 'var(--text-1)', fontFamily: 'var(--font-sans)',
+                fontSize: '.875rem', width: '100%',
               }}
               onClick={e => e.stopPropagation()}
             />
@@ -198,84 +201,75 @@ export const TaskRow = ({
                 color: task.completed ? 'var(--text-4)' : 'var(--text-1)',
                 textDecoration: task.completed ? 'line-through' : 'none',
                 fontSize: '.875rem',
+                lineHeight: 1.45,
                 display: 'block',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}
             >
-              {task.title || <span style={{ color: 'var(--text-4)', fontStyle: 'italic' }}>Untitled</span>}
+              {task.title || <em style={{ color: 'var(--text-4)' }}>Untitled</em>}
             </span>
           )}
 
           {/* Meta row */}
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            {task.dueDate && (
-              <span style={{ fontSize: '.7rem', color: isOverdue ? '#ef4444' : 'var(--text-4)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Calendar size={10} />
-                {formatDate(task.dueDate)}{task.dueTime ? ` ${task.dueTime}` : ''}
-              </span>
-            )}
-            {task.recurring && (
-              <span style={{ fontSize: '.7rem', color: 'var(--text-4)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                <RotateCcw size={10} /> recurring
-              </span>
-            )}
-            {tagObjs.map(tag => (
-              <span key={tag.id} className="tag-chip" style={{ background: tag.color + '22', color: tag.color, fontSize: '.65rem', padding: '1px 5px' }}>
-                #{tag.name}
-              </span>
-            ))}
-            {timerDisplay && (
-              <span className="timer-digits" style={{ fontSize: '.7rem', color: isTimerRunning ? 'var(--accent)' : 'var(--text-4)' }}>
-                {isTimerRunning ? `▶ ${timerDisplay}` : timerDisplay}
-              </span>
-            )}
-          </div>
+          {hasMeta && (
+            <div className="flex items-center flex-wrap mt-0.5" style={{ gap: '6px' }}>
+              {task.dueDate && (
+                <span style={{ fontSize: '.7rem', color: isOverdue ? '#ef4444' : 'var(--text-4)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <Calendar size={10} />
+                  {formatDate(task.dueDate)}{task.dueTime ? ` · ${task.dueTime}` : ''}
+                </span>
+              )}
+              {task.recurring && (
+                <span style={{ fontSize: '.7rem', color: 'var(--text-4)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <RotateCcw size={10} /> recurring
+                </span>
+              )}
+              {tagObjs.map(tag => (
+                <span key={tag.id} className="tag-chip" style={{ background: tag.color + '1a', color: tag.color, fontSize: '.65rem', padding: '1px 6px' }}>
+                  {tag.name}
+                </span>
+              ))}
+              {timerDisplay && (
+                <span className="timer-digits" style={{ fontSize: '.68rem', color: isTimerRunning ? 'var(--accent)' : 'var(--text-4)' }}>
+                  {isTimerRunning ? `▶ ${timerDisplay}` : timerDisplay}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Timer button */}
+        {/* Timer toggle — shows on hover */}
         <button
-          className="btn btn-ghost p-1 opacity-0 group-hover:opacity-100"
+          className="opacity-0 group-hover:opacity-100"
           onClick={handleTimerToggle}
           aria-label={isTimerRunning ? 'Stop timer' : 'Start timer'}
-          style={{ color: isTimerRunning ? 'var(--accent)' : 'var(--text-4)', flexShrink: 0 }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            color: isTimerRunning ? 'var(--accent)' : 'var(--text-4)',
+            flexShrink: 0, borderRadius: 6, marginTop: hasMeta ? 1 : 0,
+            transition: 'opacity .15s',
+          }}
         >
           {isTimerRunning ? <Square size={13} /> : <Play size={13} />}
         </button>
-
-        {/* Priority dot */}
-        {task.priority > 0 && (
-          <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: PRIORITY_COLORS[task.priority],
-              flexShrink: 0,
-            }}
-            title={`Priority: ${PRIORITY_LABELS[task.priority]}`}
-          />
-        )}
       </div>
 
       {/* Subtasks */}
       {hasSubtasks && subtasksOpen && (
-        <div>
-          {subtasks
-            .filter(t => !t.completed)
-            .map(sub => (
-              <TaskRow
-                key={sub.id}
-                task={sub}
-                depth={depth + 1}
-                isSelected={state.selectedTaskId === sub.id}
-                isChecked={state.bulkSelected.has(sub.id)}
-                onSelect={id => {}}
-                onBulkToggle={() => {}}
-              />
-            ))
-          }
+        <div style={{ marginBottom: 2 }}>
+          {subtasks.map(sub => (
+            <TaskRow
+              key={sub.id}
+              task={sub}
+              depth={depth + 1}
+              isSelected={state.selectedTaskId === sub.id}
+              isChecked={state.bulkSelected.has(sub.id)}
+              onSelect={onSelect}
+              onBulkToggle={onBulkToggle}
+            />
+          ))}
         </div>
       )}
     </div>

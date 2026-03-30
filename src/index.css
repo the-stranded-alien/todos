@@ -155,11 +155,29 @@ body {
   animation: checkDraw .2s ease forwards;
 }
 
-/* ── Priority borders ─────────────────────────────────────── */
+/* ── Priority borders (kept for legacy, now inline in TaskRow) ─ */
 .priority-border-0 { border-left: 3px solid transparent; }
 .priority-border-1 { border-left: 3px solid #3b82f6; }
 .priority-border-2 { border-left: 3px solid #eab308; }
 .priority-border-3 { border-left: 3px solid #ef4444; }
+
+/* ── Sidebar nav items ────────────────────────────────────── */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: .875rem;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: background .12s;
+}
+.sidebar-nav-item:hover {
+  background: var(--bg-card);
+}
 
 /* ── Mic pulse ────────────────────────────────────────────── */
 .mic-listening {
@@ -256,11 +274,22 @@ body {
   font-size: .875rem;
   padding: 6px 10px;
   outline: none;
-  transition: border-color .15s;
+  transition: border-color .15s, box-shadow .15s;
   width: 100%;
 }
-.input-base:focus { border-color: var(--accent); }
+.input-base:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
 .input-base::placeholder { color: var(--text-4); }
+
+/* ── date/time inputs match design ───────────────────────── */
+input[type="date"], input[type="time"] {
+  color-scheme: light;
+}
+.dark input[type="date"], .dark input[type="time"] {
+  color-scheme: dark;
+}
 
 /* ── Button base ──────────────────────────────────────────── */
 .btn {
