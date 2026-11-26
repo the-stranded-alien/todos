@@ -21,6 +21,6 @@ export default [
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
-  { files: ['public/sw.js'], languageOptions: { globals: { ...globals.serviceworker } } },
-  { files: ['e2e/**', 'vite.config.js', 'eslint.config.js', '**/*.test.{js,jsx}', 'src/test/**'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
+  { files: ['src/sw.js'], languageOptions: { globals: { ...globals.serviceworker } } },
+  { files: ['e2e/**', 'scripts/**', 'vite.config.js', 'eslint.config.js', '**/*.test.{js,jsx}', 'src/test/**'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
 ]

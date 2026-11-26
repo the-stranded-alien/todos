@@ -9,7 +9,7 @@ import { focusTaskRow } from './utils/focus.js'
 import { useMediaQuery, NARROW } from './hooks/useMediaQuery.js'
 import { Drawer } from './components/ui/Drawer.jsx'
 import { useHotkeys } from './hooks/useHotkeys.js'
-import { useNotifications } from './hooks/useNotifications.js'
+import { registerServiceWorker } from './pwa.js'
 
 import { Header } from './components/Header.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
@@ -31,7 +31,7 @@ import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
 
 // ── Inner app (needs store context) ───────────────────────
 const AppInner = () => {
-  const { state, dispatch, undo, redo } = useStore()
+  const { state, dispatch, undo, redo, createTask } = useStore()
   const prefs = usePrefs()
   const iconStyle = getTheme(resolvedTheme(prefs)).dark ? 'filled' : 'two-tone'
   const quickAddRef = useRef(null)
@@ -51,7 +51,7 @@ const AppInner = () => {
   const [projectEditor, setProjectEditor]       = useState(null) // null | 'new' | project
   const [tagEditor, setTagEditor]               = useState(null)
 
-  useNotifications()
+  useEffect(() => { registerServiceWorker() }, [])
 
   // ── Service worker message handler ──────────────────────
   useEffect(() => {
@@ -64,6 +64,36 @@ const AppInner = () => {
     navigator.serviceWorker.addEventListener('message', handler)
     return () => navigator.serviceWorker.removeEventListener('message', handler)
   }, [dispatch])
+
+  // ── Launch actions from the URL: manifest shortcuts, notification
+  // clicks and the OS share sheet (share_target). Runs once after load.
+  const handledLaunch = useRef(false)
+  useEffect(() => {
+    if (state.loading || handledLaunch.current) return
+    handledLaunch.current = true
+    const url = new URL(window.location.href)
+    const p = url.searchParams
+    const isShare = url.pathname.startsWith('/share-target')
+    if (!isShare && ![...p.keys()].length) return
+
+    if (isShare) {
+      const title = p.get('title')?.trim(), text = p.get('text')?.trim(), link = p.get('url')?.trim()
+      const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean)
+      const name = title || lines.shift() || link || 'Shared item'
+      const notes = [...lines, link && link !== name ? link : null].filter(Boolean).join('\n')
+      createTask({ title: name.slice(0, 200), notes }).then(task => {
+        dispatch({ type: 'SET_VIEW', view: 'inbox' })
+        dispatch({ type: 'SELECT_TASK', id: task.id })
+        toast({ message: `Added “${task.title}” from a share.`, tone: 'success', action: { label: 'Undo', onClick: undo } })
+      })
+    }
+    const view = p.get('view')
+    if (view && ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats'].includes(view)) dispatch({ type: 'SET_VIEW', view })
+    if (p.get('action') === 'new-task') requestAnimationFrame(() => quickAddRef.current?.focus())
+    const taskId = p.get('task')
+    if (taskId && state.tasks.some(t => t.id === taskId)) dispatch({ type: 'SELECT_TASK', id: taskId })
+    window.history.replaceState(null, '', '/')
+  }, [state.loading, state.tasks, createTask, dispatch, undo])
 
   // ── Programmatic view switch (used by browser checks and OS shortcuts)
   useEffect(() => {

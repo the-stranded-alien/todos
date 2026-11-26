@@ -1,23 +1,5 @@
 import { readPref, writePref } from '../utils/storage.js'
 // ── Web Notifications ──────────────────────────────────────
-import { useEffect } from 'react'
-
-export const useNotifications = () => {
-  useEffect(() => {
-    if (!('serviceWorker' in navigator)) return
-    if (import.meta.env.PROD) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
-    } else {
-      // A stale production worker on the dev port would serve old assets.
-      navigator.serviceWorker.getRegistrations()
-        .then(regs => regs.forEach(r => r.unregister()))
-        .catch(() => {})
-    }
-
-    // Request permission (deferred, not on mount to avoid annoyance)
-    // Permission is requested lazily when scheduling a notification
-  }, [])
-}
 
 export const requestNotificationPermission = async () => {
   if (!('Notification' in window)) return false

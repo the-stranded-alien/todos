@@ -131,14 +131,18 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - **Notes:** Live previews work because the token block also applies to `.theme-scope`, so each preview resets the full token set locally and its theme classes apply on top (verified: every card renders in its own colours, and high contrast shows through). Week start affects the calendar columns and the stats week. "Reduce motion" sets `data-motion="reduce"` (the same rules as the OS setting) and skips View Transitions. Reminders request permission only from the switch and explain if they're blocked. Backup logic now lives in one `useBackup` hook shared by the header and Settings. Restoring a saved copy also snapshots first and offers Undo.
 - **Verified:** 32/32 interaction checks (+4: Settings tabs and theme cards, features/workspace options take effect, Storage clear-completed → Undo restores the exact count in IndexedDB, Help search and highlight). Axe now also covers all 5 Settings tabs and Help: **0 problems** at 1280 and 390 in light and dark+hc (found and fixed: two unnamed search landmarks, and Help topics creating a duplicate "Views" landmark). Contrast audit 0.
 
-### Batch 9 — PWA and browser platform ⬜
-- [ ] `manifest.webmanifest` (`id`, `scope`, `display: standalone`, `theme_color`, SVG + PNG icons, shortcuts: New task, Today)
-- [ ] Vite plugin emits `precache-manifest.json` with hashed assets; SW precaches it with a versioned cache name, deletes old caches, `skipWaiting` + `clients.claim`
-- [ ] Network-first for navigations (fixes bug 8), cache-first for hashed assets
-- [ ] `share_target` (GET with `title`/`text`/`url`) → creates a task from shared content
-- [ ] "Update available" toast when a new SW takes over
-- [ ] Wake Lock in focus mode (re-acquire on `visibilitychange`); fullscreen toggle in focus mode
-- [ ] Notifications: feature-detected, explained in Settings, permission requested from a click only
+### Batch 9 — PWA and browser platform ✅
+- [x] `manifest.webmanifest` (`id`, `scope`, `display: standalone`, `theme_color`, SVG + PNG icons, shortcuts: New task, Today)
+- [x] Vite plugin emits `precache-manifest.json` with hashed assets; SW precaches it with a versioned cache name, deletes old caches, `skipWaiting` + `clients.claim`
+- [x] Network-first for navigations (fixes bug 8), cache-first for hashed assets
+- [x] `share_target` (GET with `title`/`text`/`url` → `/share-target`, served by a copy of the shell) → creates a task from shared content, with Undo
+- [x] "Update available" toast when a new SW takes over
+- [x] Wake Lock in focus mode (re-acquire on `visibilitychange`); fullscreen toggle in focus mode
+- [x] Notifications: feature-detected, explained in Settings, permission requested from a click only (done in Batch 8; reminders now gated on that switch)
+- **Also done:** Inter is self-hosted (`@fontsource-variable/inter`) instead of loaded from Google Fonts. That request sent each visitor's IP to a third party and broke the font offline; now the font is precached and nothing leaves the browser. App icons (192/512/maskable/Apple) are generated from the SVG by `scripts/make-icons.mjs`. Launch URLs (`?view=`, `?action=new-task`, `?task=` from notification clicks) are handled once and then removed from the address bar.
+- **Bugs found while verifying:** the build plugin replaced only the first `__SW_VERSION__` (which was in a comment), so every deploy would have shipped an identical worker; it now replaces the quoted constant and fails the build if the placeholder survives. The manifest's share target needed an explicit `enctype`.
+- **Migration:** existing installs run the old cache-first worker (bug 8). Their old page still registers `/sw.js`, which browsers fetch from the network, so the new worker installs, deletes `todos-v1`, and shows "Todos was updated — Reload".
+- **Verified (`e2e/pwa.mjs`, real Chrome profile):** manifest has **0 parse errors** and **0 installability errors** (via DevTools Protocol); the worker controls the page and precaches every file in `precache-manifest.json`; **offline reload works**, including the font and adding a task; a simulated new deploy shows the update toast with Reload and deletes old caches (incl. the v1 `todos-v1`); manifest shortcuts and the share target work and clean the URL. Regression: 55 tests, 32/32 interactions, axe sweep 0, contrast 0.
 
 ### Batch 10 — On-device AI (optional, feature-detected) ⬜
 - [ ] "Break into subtasks" in the detail panel via Chrome `LanguageModel`; `availability()`, download progress, `AbortController`
@@ -189,4 +193,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 5 — Accessibility | 2026-11-26 | `d9e6e97` | lint ✔ · 31 tests ✔ · build ✔ · 18/18 interactions ✔ · axe 0 in 28 variants × 15 views/states |
 | 6 — Layout & responsive | 2026-11-26 | `4c2aa9d` | lint ✔ · 31 tests ✔ · build ✔ · 22/22 interactions ✔ · 0 problems at 4 widths |
 | 7 — Never lose data | 2026-11-26 | `4e5fe0f` | lint ✔ · 55 tests ✔ · build ✔ · 28/28 interactions ✔ · axe 0 |
-| 8 — Settings & Help | 2026-11-26 | _see git log_ | lint ✔ · 55 tests ✔ · build ✔ · 32/32 interactions ✔ · axe 0 incl. Settings/Help |
+| 8 — Settings & Help | 2026-11-26 | `1b12329` | lint ✔ · 55 tests ✔ · build ✔ · 32/32 interactions ✔ · axe 0 incl. Settings/Help |
+| 9 — PWA & platform | 2026-11-26 | _see git log_ | lint ✔ · 55 tests ✔ · build ✔ · 6/6 PWA checks ✔ · 32/32 interactions ✔ · axe 0 |

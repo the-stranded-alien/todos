@@ -67,6 +67,17 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'install', title: 'Install and offline',
+    body: [
+      'Install Todos as an app from your browser’s address bar or menu (Chrome, Edge; on iPhone use Share → Add to Home Screen).',
+      'After the first visit it works offline, including reloads. Changes are saved on the device as you make them.',
+      'Installed apps get shortcuts (right-click or long-press the icon): New task and Today.',
+      'On Android and ChromeOS you can share a link or text from another app to Todos to turn it into a task.',
+      'When a new version is available you’ll see “Todos was updated” with a Reload button.',
+      'Focus mode keeps the screen awake while it’s open, and can go full screen.',
+    ],
+  },
+  {
     id: 'appearance', title: 'Themes and display',
     body: [
       'The theme button in the header cycles Light, Dark and Sepia. Settings → Appearance has live previews, more themes, high contrast, density and reduce motion.',
