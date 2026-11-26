@@ -2,7 +2,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import {
   Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Calendar, BarChart3,
-  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS, Trash2, Filter,
+  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS, Trash2, Filter, Board,
 } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO } from '../utils/dates.js'
@@ -12,7 +12,7 @@ import { matchesRules } from '../utils/smartLists.js'
 
 const ICON_MAP = {
   ...PROJECT_ICONS,
-  Inbox, LayoutList, Sun, CalendarDays, Calendar, CheckCircle2, BarChart3, Trash2,
+  Inbox, LayoutList, Sun, CalendarDays, Calendar, CheckCircle2, BarChart3, Trash2, Board,
 }
 
 const VIEWS = [
@@ -21,6 +21,7 @@ const VIEWS = [
   { id: 'upcoming',  label: 'Upcoming',  icon: 'CalendarDays' },
   { id: 'all',       label: 'All Tasks', icon: 'LayoutList' },
   { id: 'completed', label: 'Completed', icon: 'CheckCircle2' },
+  { id: 'board',     label: 'Board',     icon: 'Board' },
   { id: 'calendar',  label: 'Calendar',  icon: 'Calendar' },
   { id: 'stats',     label: 'Stats',     icon: 'BarChart3' },
   { id: 'trash',     label: 'Trash',     icon: 'Trash2' },

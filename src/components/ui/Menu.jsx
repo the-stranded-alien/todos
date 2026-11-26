@@ -16,9 +16,10 @@ const MenuList = ({ items, onClose, anchor, point, placement = 'down', align = '
 
   const focusables = () => [...ref.current.querySelectorAll('[role^="menuitem"]:not([aria-disabled="true"])')]
 
-  // Position + first focus, before paint
-  useLayoutEffect(() => {
+  // Place next to the anchor (or at a point), kept inside the viewport
+  const place = useCallback(() => {
     const el = ref.current
+    if (!el) return
     const w = el.offsetWidth, h = el.offsetHeight, pad = 8
     let left, top
     if (point) { left = point.x; top = point.y }
@@ -33,8 +34,13 @@ const MenuList = ({ items, onClose, anchor, point, placement = 'down', align = '
     el.style.left = `${Math.round(left)}px`
     el.style.top = `${Math.round(top)}px`
     el.style.visibility = 'visible'
-    focusables()[0]?.focus()
   }, [anchor, point, placement, align])
+
+  // Position + first focus, before paint
+  useLayoutEffect(() => {
+    place()
+    focusables()[0]?.focus()
+  }, [place])
 
   const close = useCallback((restore = true) => {
     onClose()
@@ -47,7 +53,15 @@ const MenuList = ({ items, onClose, anchor, point, placement = 'down', align = '
       if (ref.current?.contains(e.target) || anchor?.contains(e.target)) return
       close(false)
     }
-    const onScroll = (e) => { if (!ref.current?.contains(e.target)) close(false) }
+    // Follow the anchor when something scrolls; close once it's out of view
+    const onScroll = (e) => {
+      if (ref.current?.contains(e.target)) return
+      if (anchor) {
+        const r = anchor.getBoundingClientRect()
+        if (r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) { close(false); return }
+        place()
+      } else close(false)
+    }
     const onResize = () => close(false)
     document.addEventListener('pointerdown', onDown, true)
     window.addEventListener('scroll', onScroll, true)
@@ -57,7 +71,7 @@ const MenuList = ({ items, onClose, anchor, point, placement = 'down', align = '
       window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', onResize)
     }
-  }, [anchor, close])
+  }, [anchor, close, place])
 
   const onKeyDown = (e) => {
     const list = focusables()

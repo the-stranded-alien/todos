@@ -172,6 +172,15 @@ export const TaskDetail = ({ onClose }) => {
           </button>
         </div>
 
+        {/* Status (board column) */}
+        {!task.completed && !task.parentId && (
+          <div className="segmented" role="radiogroup" aria-label="Status" style={{ display: 'flex' }}>
+            {[['todo', 'To do'], ['doing', 'Doing']].map(([v, l]) => (
+              <button key={v} type="button" role="radio" aria-checked={(task.status ?? 'todo') === v} onClick={() => update({ status: v })}>{l}</button>
+            ))}
+          </div>
+        )}
+
         {/* Priority */}
         <div>
           <h3 className="detail-label" id="detail-priority">Priority</h3>

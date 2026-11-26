@@ -628,6 +628,51 @@ await check('import: paste Markdown + todo.txt, preview, skip one, one undo step
   await d2.getByRole('button', { name: 'Cancel' }).click()
 })
 
+// ── Board ────────────────────────────────────────────────
+await check('board: keyboard move, menu move, drag to Done, add a card, group by priority, Undo, timer → Doing', async () => {
+  const bc = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  const p = await bc.newPage()
+  await p.goto(BASE)
+  const q = p.getByRole('textbox', { name: 'Quick add task' })
+  await q.waitFor()
+  for (const t of ['Card alpha', 'Card beta', 'Card gamma p3']) { await q.fill(t); await q.press('Enter') }
+  // timer moves a task to Doing
+  await p.locator('.task-row', { hasText: 'Card gamma' }).hover()
+  await p.locator('.task-row', { hasText: 'Card gamma' }).getByRole('button', { name: 'Start timer' }).click()
+  await p.getByRole('button', { name: /^Board/ }).click()
+  await p.getByRole('heading', { level: 1, name: 'Board' }).waitFor()
+  const col = (name) => p.locator('.board-col', { has: p.getByRole('heading', { level: 2, name: new RegExp(`^${name}`) }) })
+  await col('Doing').locator('[data-card]', { hasText: 'Card gamma' }).waitFor()
+  // keyboard: Alt+→ moves alpha to Doing and keeps focus on it
+  await col('To do').locator('[data-card]', { hasText: 'Card alpha' }).focus()
+  await p.keyboard.press('Alt+ArrowRight')
+  await col('Doing').locator('[data-card]', { hasText: 'Card alpha' }).waitFor()
+  await p.waitForFunction(() => document.activeElement?.textContent?.includes('Card alpha'))
+  // arrows move between cards
+  await p.keyboard.press('ArrowDown')
+  assert((await p.evaluate(() => document.activeElement?.textContent)).includes('Card'), 'arrow focus lost')
+  // menu: move beta to Doing
+  await p.getByRole('button', { name: 'Move “Card beta”' }).click()
+  await p.getByRole('menuitemradio', { name: 'Doing' }).click()
+  await col('Doing').locator('[data-card]', { hasText: 'Card beta' }).waitFor()
+  // drag alpha to Done → completed; Undo puts it back
+  await col('Doing').locator('.board-card-wrap', { hasText: 'Card alpha' }).dragTo(col('Done').locator('.board-cards'))
+  await col('Done').locator('[data-card][data-done]', { hasText: 'Card alpha' }).waitFor()
+  await p.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await col('Doing').locator('[data-card]', { hasText: 'Card alpha' }).waitFor()
+  // add a card straight into Doing
+  await p.getByRole('textbox', { name: 'Add a card to Doing' }).fill('Fresh card'); await p.keyboard.press('Enter')
+  await col('Doing').locator('[data-card]', { hasText: 'Fresh card' }).waitFor()
+  // group by priority; drag to High sets priority 3
+  await p.getByRole('radio', { name: 'Priority' }).click()
+  await col('High').locator('[data-card]', { hasText: 'Card gamma' }).waitFor()
+  await p.getByRole('button', { name: 'Move “Card beta”' }).click()
+  await p.getByRole('menuitemradio', { name: 'High' }).click()
+  await col('High').locator('[data-card]', { hasText: 'Card beta' }).waitFor()
+  await p.getByRole('radio', { name: 'Status' }).click()
+  await bc.close()
+})
+
 // ── On-device AI ─────────────────────────────────────────
 await check('suggest subtasks without built-in AI: notice, quick version, one undo step', async () => {
   await page.mouse.click(700, 700)

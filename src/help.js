@@ -24,6 +24,7 @@ export const HELP_SECTIONS = [
   {
     id: 'views', title: 'Views',
     body: [
+      'Board shows cards in columns by status (To do / Doing / Done), priority or project. Drag a card to another column, or focus it and press Alt+← / Alt+→, or use its ⋯ menu. Starting a timer moves a task to Doing.',
       'Inbox: tasks without a project. Today: due today or overdue. Upcoming: the next 7 days, grouped by date. All tasks, Completed, Calendar and Stats.',
       'Projects and tags in the sidebar filter the list. Drag a task onto a project to move it there.',
       'Use the Filters button for priority, tag, “has due date” and “overdue only”, and the Sort menu for order.',

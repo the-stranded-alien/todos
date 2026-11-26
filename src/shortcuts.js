@@ -24,6 +24,10 @@ export const SHORTCUT_GROUPS = [
     ['Delete', 'Delete the focused task (with Undo)'],
     ['Shift+F10', 'Task menu (or right-click)'],
   ] },
+  { title: 'Board', items: [
+    ['← → ↑ ↓', 'Move between cards'],
+    ['Alt+← / Alt+→', 'Move the card to the next column'],
+  ] },
   { title: 'Calendar', items: [
     ['← → ↑ ↓', 'Move between days'],
     ['Enter', 'Show the day’s tasks'],

@@ -27,6 +27,7 @@ import { TagEditor } from './components/Modals/TagEditor.jsx'
 import { SettingsDialog } from './components/Settings/SettingsDialog.jsx'
 import { HelpDialog } from './components/HelpDialog.jsx'
 import { TrashView } from './components/TrashView.jsx'
+import { BoardView } from './components/BoardView.jsx'
 import { SmartListEditor } from './components/Modals/SmartListEditor.jsx'
 import { ShareDialog } from './components/Share/ShareDialog.jsx'
 import { SharePreview } from './components/Share/SharePreview.jsx'
@@ -91,7 +92,7 @@ const AppInner = () => {
       })
     }
     const view = p.get('view')
-    if (view && ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats', 'trash'].includes(view)) dispatch({ type: 'SET_VIEW', view })
+    if (view && ['inbox', 'today', 'upcoming', 'all', 'completed', 'board', 'calendar', 'stats', 'trash'].includes(view)) dispatch({ type: 'SET_VIEW', view })
     if (p.get('action') === 'new-task') requestAnimationFrame(() => quickAddRef.current?.focus())
     const taskId = p.get('task')
     if (taskId && state.tasks.some(t => t.id === taskId)) {
@@ -219,6 +220,8 @@ const AppInner = () => {
           <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
             {view === 'trash' ? (
               <TrashView />
+            ) : view === 'board' ? (
+              <BoardView />
             ) : isCalendar ? (
               <CalendarView />
             ) : isStats ? (

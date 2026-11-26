@@ -10,7 +10,7 @@ const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Conte
 const AXE = readFileSync(resolve('node_modules/axe-core/axe.min.js'), 'utf8')
 mkdirSync(OUT, { recursive: true })
 
-const VIEWS = ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats', 'trash']
+const VIEWS = ['inbox', 'today', 'upcoming', 'all', 'completed', 'board', 'calendar', 'stats', 'trash']
 const THEMES = (process.env.THEMES || 'light,dark').split(',')  // add +hc for high contrast, e.g. dark+hc
 const WIDTHS = (process.env.WIDTHS || '1280,390').split(',').map(Number)
 
@@ -37,7 +37,9 @@ const seed = async (page) => {
   await page.getByRole('button', { name: /^Complete “/ }).last().click()
   await page.waitForTimeout(500)
   await input.fill('Old idea'); await input.press('Enter')
-  await page.locator('.task-title', { hasText: 'Old idea' }).focus(); await page.keyboard.press('Delete')
+  await page.locator('.task-title', { hasText: 'Old idea' }).click({ button: 'right' })
+  await page.getByRole('menuitem', { name: /Delete/ }).click()
+  await page.locator('.task-title', { hasText: 'Old idea' }).waitFor({ state: 'detached' })
 }
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true })
@@ -69,7 +71,8 @@ for (const width of WIDTHS) {
           const r = el.getBoundingClientRect()
           if (!r.width || !r.height || getComputedStyle(el).visibility === 'hidden') continue
           if (el.closest('.sr-only')) continue
-          if (r.right > innerWidth + 1 || r.left < -1) { out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')} x=${Math.round(r.left)}..${Math.round(r.right)}`); continue }
+          const inScroller = (() => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { if (/(auto|scroll)/.test(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth) return true } return false })()
+          if (!inScroller && (r.right > innerWidth + 1 || r.left < -1)) { out.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')} x=${Math.round(r.left)}..${Math.round(r.right)}`); continue }
           if (el.matches('button, input, select, textarea, a[href]')) {
             let p = el.parentElement
             while (p && p !== document.body) {

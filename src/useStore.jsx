@@ -412,6 +412,22 @@ export const StoreProvider = ({ children }) => {
 
   const emptyTrash = useCallback(async () => deletePermanently((await db.getTrash()).map(e => e.id)), [deletePermanently])
 
+  // ── Board: move a card to another column (one undo step) ──
+  // by: 'status' (todo | doing | done) | 'priority' (0–3) | 'project' (id | null)
+  const moveCard = useCallback((id, by, value) => grouped(async () => {
+    const task = await db.getTask(id)
+    if (!task) return
+    if (by === 'status') {
+      if (value === 'done') { if (!task.completed) await completeTask(id); return }
+      if (task.completed) await uncompleteTask(id)
+      if ((task.status ?? 'todo') !== value) await updateTask(id, { status: value })
+    } else if (by === 'priority') {
+      if (task.priority !== value) await updateTask(id, { priority: value })
+    } else if (by === 'project') {
+      if ((task.projectId ?? null) !== value) await updateTask(id, { projectId: value })
+    }
+  }), [grouped, completeTask, uncompleteTask, updateTask])
+
   // ── Smart lists ──────────────────────────────────────────
   const putList = useCallback(async (list) => { await db.putList(list); dispatch({ type: 'UPSERT_LIST', list }) }, [])
   const removeList = useCallback(async (id) => { await db.deleteList(id); dispatch({ type: 'REMOVE_LIST', id }) }, [])
@@ -477,7 +493,8 @@ export const StoreProvider = ({ children }) => {
     const task = await db.getTask(id)
     if (!task) return
     const now = Date.now()
-    await writeTasks([{ ...task, timerStartedAt: now, updatedAt: now }])
+    // Working on it: a running timer moves the task to "Doing"
+    await writeTasks([{ ...task, timerStartedAt: now, updatedAt: now, ...(task.completed ? {} : { status: 'doing' }) }])
     dispatch({ type: 'SET_ACTIVE_TIMER', taskId: id })
   }, [writeTasks, stopTimer])
 
@@ -671,7 +688,7 @@ export const StoreProvider = ({ children }) => {
     createTag, updateTag, deleteTag,
     bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,
     restoreFromTrash, deletePermanently, emptyTrash, restoreVersion,
-    createList, updateList, deleteList, importItems,
+    createList, updateList, deleteList, importItems, moveCard,
     undo, redo,
     importData, reloadAll,
   }

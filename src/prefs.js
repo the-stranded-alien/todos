@@ -25,6 +25,8 @@ export const DEFAULT_PREFS = {
   pomoLong: 15,
   pomoLongEvery: 4,
   pomoSound: true,
+  boardGroup: 'status',
+  boardProject: 'all',
 }
 
 export const prefersReducedMotion = () => {

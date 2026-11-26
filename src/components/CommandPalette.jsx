@@ -18,6 +18,7 @@ const STATIC_COMMANDS = [
   { id: 'view-upcoming',label: 'Go to Upcoming',    icon: LayoutList, group: 'Views' },
   { id: 'view-completed',label:'Go to Completed',   icon: CheckSquare,group: 'Views' },
   { id: 'view-stats',   label: 'Go to Stats',       icon: LayoutList, group: 'Views' },
+  { id: 'view-board',   label: 'Go to Board',       icon: LayoutList, group: 'Views' },
   { id: 'view-trash',   label: 'Go to Trash',       icon: LayoutList, group: 'Views' },
 ]
 

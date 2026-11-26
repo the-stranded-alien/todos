@@ -40,8 +40,12 @@ export const useReminders = ({ onOpenTask }) => {
       data: { taskId: task.id },
       actions: [{ action: 'done', title: 'Done' }, { action: 'snooze', title: 'Snooze 10 min' }],
     }
-    if (navigator.serviceWorker?.controller) navigator.serviceWorker.ready.then(r => r.showNotification('Reminder', opts)).catch(() => {})
-    else { try { const { actions: _a, ...plain } = opts; new Notification('Reminder', plain) } catch { /* not allowed */ } }
+    // Prefer the service worker (needed for Done/Snooze buttons), even if
+    // this page isn't controlled yet; fall back to a plain notification
+    const plain = () => { try { const { actions: _a, ...rest } = opts; new Notification('Reminder', rest) } catch { /* not allowed */ } }
+    const reg = navigator.serviceWorker?.getRegistration?.()
+    if (!reg) { plain(); return }
+    reg.then(r => (r?.active ? r.showNotification('Reminder', opts) : plain())).catch(plain)
   }, [prefs.reminders])
 
   const fire = useCallback((task, at) => {

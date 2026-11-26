@@ -224,10 +224,13 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 - **Notes:** Rules engine in `utils/smartLists.js` (words, projects incl. Inbox, tags any/all, priorities, due window, has notes, has tracked time, include completed) with a readable summary under the list title. DB schema v4 adds a `lists` store; lists are in backups (validated) and sync between tabs. Editor dialog shows a live "Matches N tasks". "Save as smart list…" appears whenever a search or filter is active, and pre-fills the rules. Each list remembers its own sort. New tasks added in a list default to its project when the list targets exactly one. Deleting a list never touches tasks, and offers Undo.
 - **Verified:** 7 unit tests for the rules; browser check covering save from filters, rules applied, count matches, filters cleared after saving, per-list sort not leaking to the Inbox, edit rules, and delete → Undo. Axe on the editor: 0 at 1280 and 390, light and dark+hc.
 
-### 6. Board view (Kanban) ⬜ (M)
-- [ ] Columns by status (To do / Doing / Done), by priority, or by project; drag cards between columns (keyboard alternative: "Move to…" menu, arrow keys)
-- [ ] "Doing" as an optional status field (works with timers: starting a timer moves the card to Doing)
-- [ ] Horizontal scroll at phone width with one column per screen; portal tooltips (guideline §6)
+### 6. Board view (Kanban) ✅ (Batch 18) (M)
+- [x] Columns by status (To do / Doing / Done), by priority, or by project; drag cards between columns (keyboard alternative: "Move to…" menu, arrow keys)
+- [x] "Doing" as an optional status field (works with timers: starting a timer moves the card to Doing)
+- [x] Horizontal scroll at phone width with one column per screen; portal tooltips (guideline §6)
+- **Notes:** Board view (sidebar → Board) with columns by **status** (To do / Doing / Done; Done shows the last 14 days), **priority** or **project**, plus a project filter. Grouping and filter are remembered. Tasks get an optional `status`; the task details show a To do / Doing switch, and **starting a timer moves a task to Doing**. Moves go through one store action (`moveCard`), so each is one undo step with a toast; moving to Done completes, moving out of Done reopens. Keyboard: arrows move between cards and columns, **Alt+←/→** moves a card, and every card has a "Move to…" menu. Each column has an "Add a card…" box that fills in that column's value. Phones get one column per screen with scroll-snap.
+- **Bugs found while testing and fixed:** (1) menus closed on *any* scroll, so a menu opened in the scrolling board closed itself as scroll-snap settled; menus now follow their button and close only when it scrolls out of view. (2) Screen-reader-only text in off-screen columns escaped the board's scroller (absolutely positioned, no positioned ancestor) and made the whole page 1047px wide at 390px; the board and columns are now positioned containers. (3) Reminder notifications fell back to a plain page notification (no Done/Snooze buttons) when the page wasn't controlled by the worker yet; they now use the worker's registration whenever one exists. (4) The sweep's setup never actually trashed its task, so the Trash view had only been checked empty; fixed, and the Trash view with items passes axe.
+- **Verified:** browser check: timer → Doing, Alt+→ moves and keeps focus, arrow keys, menu move, drag to Done → completed → Undo, add a card into Doing, regroup by priority and move to High. Axe/off-screen sweep 0 (light, dark+hc, neon at 1280 and 390). Screenshots reviewed.
 
 ### 7. Plan my day ⬜ (M)
 - [ ] Morning prompt (optional): pick tasks for today from overdue, due-soon and suggested
@@ -303,3 +306,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 15 — Pomodoro | 2026-11-26 | _see git log_ | lint ✔ · 100 tests ✔ · build ✔ · interactions ✔ (fake clock) · walk-through ✔ · axe 0 |
 | 16 — Reminders & calendar | 2026-11-26 | _see git log_ | lint ✔ · 108 tests ✔ · build ✔ · interactions ✔ (fake clock + real notifications) · walk-through ✔ · PWA ✔ · axe 0 |
 | 17 — Share & import/export | 2026-11-26 | _see git log_ | lint ✔ · 117 tests ✔ · build ✔ · interactions ✔ (3 clean runs) · walk-through ✔ · PWA ✔ · axe 0 |
+| 18 — Board view | 2026-11-26 | _see git log_ | lint ✔ · 117 tests ✔ · build ✔ · interactions ✔ (2 clean runs) · walk-through ✔ · axe 0 at 1280 + 390 |
