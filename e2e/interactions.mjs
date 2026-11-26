@@ -2,6 +2,7 @@
 import { chromium } from 'playwright-core'
 
 const BASE = process.env.BASE_URL || 'http://localhost:4173'
+const BASE_ORIGIN = () => new URL(BASE).origin
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const browser = await chromium.launch({ executablePath: CHROME, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, acceptDownloads: true })
@@ -522,10 +523,10 @@ await check('reminders: fire with toast + notification, snooze, Done action, mis
   await p.clock.runFor(21 * 60000)
   assert(await tickUntil(p, statusHas(p, /Reminder: “Call the dentist”/)), 'reminder did not fire at 10:20')
   let notes = []
-  for (let i = 0; i < 30 && !notes.length; i++) {
+  await tickUntil(p, async () => {
     notes = await p.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map(n => ({ title: n.title, body: n.body, actions: n.actions.map(a => a.action) })))
-    if (!notes.length) await p.waitForTimeout(100)
-  }
+    return notes.length > 0
+  }, { step: 100, max: 60 })
   assert(notes.length === 1 && notes[0].actions.join() === 'done,snooze' && notes[0].body.includes('Call the dentist'), 'notifications: ' + JSON.stringify(notes))
   // snooze from the toast → fires again 10 min later
   await p.getByRole('status').getByRole('button', { name: 'Snooze 10 min' }).click()
@@ -549,6 +550,82 @@ await check('reminders: fire with toast + notification, snooze, Done action, mis
   await p2.goto(BASE)
   await p2.getByRole('status').getByText(/While Todos was closed, a reminder came due: “Water the garden”/).waitFor({ timeout: 5000 })
   await rc.close()
+})
+
+// ── Share, export, import ────────────────────────────────
+await check('share link: copy, open as someone else, preview, add as a new project', async () => {
+  const sc = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  await sc.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE })
+  const a = await sc.newPage()
+  await a.goto(BASE)
+  const q = a.getByRole('textbox', { name: 'Quick add task' })
+  await q.waitFor()
+  await a.getByRole('button', { name: 'New project' }).click(); await a.keyboard.type('Trip; Paris'); await a.getByRole('button', { name: 'Create' }).click()
+  await a.getByRole('button', { name: /^Trip; Paris/ }).click()
+  await q.fill('Book flights ✈️ !3 tomorrow'); await q.press('Enter')
+  await q.fill('Pack bags'); await q.press('Enter')
+  await a.locator('.task-title', { hasText: 'Book flights' }).click()
+  const sub = a.getByRole('textbox', { name: 'Add subtask' }); await sub.fill('Compare prices'); await sub.press('Enter')
+  await a.getByRole('button', { name: 'Close details' }).click()
+  // Markdown copy
+  await a.getByRole('button', { name: 'Share, export and import' }).click()
+  await a.getByRole('menuitem', { name: 'Copy as Markdown' }).click()
+  const md = await a.evaluate(() => navigator.clipboard.readText())
+  assert(md.startsWith('# Trip; Paris') && md.includes('- [ ] Book flights ✈️') && md.includes('  - [ ] Compare prices'), 'markdown: ' + md)
+  // Share link
+  await a.getByRole('button', { name: 'Share, export and import' }).click()
+  await a.getByRole('menuitem', { name: 'Share this list…' }).click()
+  const dlg = a.getByRole('dialog', { name: /^Share “Trip; Paris”/ })
+  await dlg.getByText('This link contains 3 tasks').waitFor()
+  await a.waitForFunction(() => document.querySelector('#share-url')?.value.includes('#share='))
+  await dlg.getByRole('button', { name: 'Copy link' }).click()
+  const url = await a.evaluate(() => navigator.clipboard.readText())
+  assert(url.startsWith(BASE_ORIGIN()) && url.includes('/#share=z.'), 'url: ' + url.slice(0, 80))
+  await sc.close()
+  // someone else opens it
+  const other = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  const b = await other.newPage()
+  await b.goto(url)
+  const prev = b.getByRole('dialog', { name: 'Shared with you: “Trip; Paris”' })
+  await prev.waitFor()
+  assert(new URL(b.url()).hash === '', 'hash left in the address bar')
+  assert((await prev.textContent()).includes('Compare prices'), 'subtask missing in preview')
+  await prev.getByRole('button', { name: 'Add 3 tasks' }).click()
+  await b.getByRole('heading', { level: 1, name: 'Trip; Paris' }).waitFor()
+  await b.locator('.task-title', { hasText: 'Book flights ✈️' }).waitFor()
+  await b.getByRole('list', { name: /Subtasks of “Book flights/ }).getByText('Compare prices').waitFor()
+  // a broken link explains itself
+  await b.goto(BASE + '/#share=q.broken')
+  await b.getByRole('status').getByText(/Couldn’t open this share link/).waitFor()
+  await other.close()
+})
+
+await check('import: paste Markdown + todo.txt, preview, skip one, one undo step; drop a file', async () => {
+  await page.mouse.click(700, 700)
+  await page.getByRole('button', { name: /^Inbox/ }).click()
+  const before = await page.locator('.task-title').count()
+  await page.getByRole('button', { name: 'Share, export and import' }).click()
+  await page.getByRole('menuitem', { name: 'Import tasks…' }).click()
+  const dlg = page.getByRole('dialog', { name: 'Import tasks' })
+  await dlg.getByRole('textbox', { name: 'Text' }).fill('- [ ] Write intro #writing\n  - [ ] Outline\n- [x] Done already\n- [ ] Skip me')
+  await dlg.getByText('Preview · Markdown checklist').waitFor()
+  await dlg.getByRole('list', { name: 'Tasks to import' }).getByRole('checkbox').nth(2).uncheck()
+  await dlg.getByRole('button', { name: 'Import 3 tasks' }).click()
+  await page.locator('.task-title', { hasText: 'Write intro' }).waitFor()
+  assert(await page.locator('.task-title', { hasText: 'Skip me' }).count() === 0, 'skipped item imported')
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await page.locator('.task-title', { hasText: 'Write intro' }).waitFor({ state: 'detached', timeout: 3000 })
+  assert(await page.locator('.task-title').count() === before, 'undo left tasks behind')
+  // drop a todo.txt file
+  await page.evaluate(() => {
+    const dt = new DataTransfer()
+    dt.items.add(new File(['(A) Call Mom due:2026-12-02 @phone\nx Pay rent'], 'list.txt', { type: 'text/plain' }))
+    window.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
+  })
+  const d2 = page.getByRole('dialog', { name: 'Import tasks' })
+  await d2.getByText('Preview · todo.txt').waitFor()
+  await d2.getByText('list.txt').waitFor()
+  await d2.getByRole('button', { name: 'Cancel' }).click()
 })
 
 // ── On-device AI ─────────────────────────────────────────

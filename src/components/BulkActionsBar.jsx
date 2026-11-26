@@ -1,11 +1,11 @@
 // ── Bulk actions bar ───────────────────────────────────────
-import { CheckCircle2, Trash2, FolderInput, Tag, X, Inbox, Folder, PROJECT_ICONS } from '../icons.jsx'
+import { CheckCircle2, Trash2, FolderInput, Tag, X, Inbox, Folder, PROJECT_ICONS, Share } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { IconButton } from './ui/IconButton.jsx'
 import { MenuButton } from './ui/Menu.jsx'
 import { toast } from '../toast.js'
 
-export const BulkActionsBar = () => {
+export const BulkActionsBar = ({ onShare }) => {
   const { state, dispatch, bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, undo } = useStore()
   const done = (message) => toast({ message, action: { label: 'Undo', onClick: undo } })
   const plural = (n) => `${n} task${n === 1 ? '' : 's'}`
@@ -43,6 +43,11 @@ export const BulkActionsBar = () => {
           ? [{ heading: 'Add tag' }, ...tags.map(t => ({ label: `#${t.name}`, swatch: t.color, onSelect: async () => done(`Tagged ${plural(await bulkAddTag(t.id))} with #${t.name}.`) }))]
           : [{ label: 'No tags yet', disabled: true }]}
       />
+
+      <IconButton label="Share selected" icon={Share} onClick={() => {
+        const picked = state.tasks.filter(t => bulkSelected.has(t.id) && !(t.parentId && bulkSelected.has(t.parentId)))
+        onShare?.(`${picked.length} selected task${picked.length === 1 ? '' : 's'}`, picked)
+      }} />
 
       <div aria-hidden="true" style={{ width: 1, height: 20, background: 'var(--border)' }} />
 

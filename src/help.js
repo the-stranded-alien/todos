@@ -92,6 +92,15 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'share', title: 'Sharing, export and import',
+    body: [
+      'Share a list: in the list’s ⋯ menu choose “Share this list…”, or select tasks and use Share in the selection bar. You get a link to copy or send.',
+      'The tasks travel inside the link itself (after the #), so nothing is uploaded anywhere. Anyone with the link can read them. When they open it, they see a preview and can add the tasks to their own Todos.',
+      'Export: the ⋯ menu copies the list as a Markdown checklist, or downloads it as Markdown or todo.txt.',
+      'Import: ⋯ → Import tasks…, the command palette, or drop a .md or .txt file anywhere. Markdown checklists (indented items become subtasks), todo.txt and plain lines all work, with a preview first. Importing is one step you can undo.',
+    ],
+  },
+  {
     id: 'appearance', title: 'Themes and display',
     body: [
       'The theme button in the header cycles Light, Dark and Sepia. Settings → Appearance has live previews, more themes, high contrast, density and reduce motion.',

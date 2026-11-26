@@ -28,6 +28,10 @@ import { SettingsDialog } from './components/Settings/SettingsDialog.jsx'
 import { HelpDialog } from './components/HelpDialog.jsx'
 import { TrashView } from './components/TrashView.jsx'
 import { SmartListEditor } from './components/Modals/SmartListEditor.jsx'
+import { ShareDialog } from './components/Share/ShareDialog.jsx'
+import { SharePreview } from './components/Share/SharePreview.jsx'
+import { ImportDialog } from './components/Share/ImportDialog.jsx'
+import { decodeShare, SHARE_PREFIX } from './utils/share.js'
 import { Toaster } from './components/ui/Toaster.jsx'
 import { toast } from './toast.js'
 import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
@@ -54,6 +58,9 @@ const AppInner = () => {
   const [projectEditor, setProjectEditor]       = useState(null) // null | 'new' | project
   const [tagEditor, setTagEditor]               = useState(null)
   const [listEditor, setListEditor]             = useState(null) // null | { list?, rules? }
+  const [shareOf, setShareOf]                   = useState(null) // { name, tasks }
+  const [sharePreview, setSharePreview]         = useState(null) // decoded share data
+  const [importOf, setImportOf]                 = useState(null) // { text?, name?, projectId? }
 
   useEffect(() => { registerServiceWorker() }, [])
 
@@ -93,6 +100,37 @@ const AppInner = () => {
     }
     window.history.replaceState(null, '', '/')
   }, [state.loading, state.tasks, createTask, dispatch, undo, reminderAction])
+
+  // ── Share links (#share=…) — on load and if opened while running ──
+  useEffect(() => {
+    if (state.loading) return
+    const check = () => {
+      if (!window.location.hash.startsWith(SHARE_PREFIX)) return
+      const code = window.location.hash.slice(SHARE_PREFIX.length)
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      decodeShare(code).then(setSharePreview).catch(e => toast({ message: `Couldn’t open this share link. ${e.message}`, tone: 'warning', duration: 9000 }))
+    }
+    check()
+    window.addEventListener('hashchange', check)
+    return () => window.removeEventListener('hashchange', check)
+  }, [state.loading])
+
+  // ── Drop a .md / .txt file anywhere to import it ─────────
+  useEffect(() => {
+    const isTextFile = (dt) => [...(dt?.items || [])].some(i => i.kind === 'file')
+    const over = (e) => { if (isTextFile(e.dataTransfer)) e.preventDefault() }
+    const drop = async (e) => {
+      const file = e.dataTransfer?.files?.[0]
+      if (!file) return
+      e.preventDefault()
+      if (!/\.(md|markdown|txt)$/i.test(file.name) && !/^text\//.test(file.type)) { toast({ message: `Only .md and .txt files can be imported (“${file.name}”).`, tone: 'warning' }); return }
+      if (file.size > 2_000_000) { toast({ message: `“${file.name}” is too big to import (over 2 MB).`, tone: 'warning' }); return }
+      setImportOf({ text: await file.text(), name: file.name })
+    }
+    window.addEventListener('dragover', over)
+    window.addEventListener('drop', drop)
+    return () => { window.removeEventListener('dragover', over); window.removeEventListener('drop', drop) }
+  }, [])
 
   // ── Programmatic view switch (used by browser checks and OS shortcuts)
   useEffect(() => {
@@ -186,7 +224,7 @@ const AppInner = () => {
             ) : isStats ? (
               <StatsPanel />
             ) : (
-              <TaskList quickAddRef={quickAddRef} onEditList={setListEditor} />
+              <TaskList quickAddRef={quickAddRef} onEditList={setListEditor} onShare={(name, tasks) => setShareOf({ name, tasks })} onImport={(o) => setImportOf(o ?? {})} />
             )}
           </div>
 
@@ -207,6 +245,7 @@ const AppInner = () => {
           onOpenSettings={(section) => { setCommandPalette(false); setSettingsAt(section || 'Workspace') }}
           onOpenHelp={() => { setCommandPalette(false); setShowHelp(true) }}
           onShowShortcuts={() => { setCommandPalette(false); setShowShortcuts(true) }}
+          onImport={() => { setCommandPalette(false); setImportOf({}) }}
           quickAddRef={quickAddRef}
         />
       )}
@@ -220,6 +259,15 @@ const AppInner = () => {
         />
       )}
       {showHelp && <HelpDialog onClose={() => setShowHelp(false)} />}
+      {shareOf && <ShareDialog name={shareOf.name} tasks={shareOf.tasks} all={state.tasks} tags={state.tags} onClose={() => setShareOf(null)} />}
+      {sharePreview && (
+        <SharePreview
+          data={sharePreview}
+          onClose={() => setSharePreview(null)}
+          onAdded={(projectId) => dispatch({ type: 'SET_VIEW', view: projectId ? `project:${projectId}` : 'inbox' })}
+        />
+      )}
+      {importOf && <ImportDialog initialText={importOf.text} initialName={importOf.name} defaultProjectId={importOf.projectId} onClose={() => setImportOf(null)} />}
       {listEditor && (
         <SmartListEditor
           list={listEditor.list}
@@ -242,7 +290,7 @@ const AppInner = () => {
       )}
 
       {/* Bulk actions */}
-      <BulkActionsBar />
+      <BulkActionsBar onShare={(name, tasks) => setShareOf({ name, tasks })} />
       <Toaster />
       <TooltipLayer />
     </div>

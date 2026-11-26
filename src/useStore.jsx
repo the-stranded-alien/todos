@@ -620,6 +620,48 @@ export const StoreProvider = ({ children }) => {
     )
   }, [pushUndo, reloadAll])
 
+  // ── Import (pasted text, files, share links): one undo step ──
+  // items: { title, done, priority, dueDate, dueTime, tags: [names], project, notes, children }
+  const importItems = useCallback((items, { projectId = null, newProjectName = null } = {}) => grouped(async () => {
+    const tags = await db.getTags()
+    const projects = await db.getProjects()
+    let target = projectId
+    if (newProjectName) target = (await createProject({ name: newProjectName })).id
+    const tagId = async (name) => {
+      const n = name.toLowerCase()
+      const found = tags.find(t => t.name.toLowerCase() === n)
+      if (found) return found.id
+      const created = await createTag({ name: n })
+      tags.push(created)
+      return created.id
+    }
+    const projectFor = (name) => {
+      if (!name) return target
+      const n = name.toLowerCase().replace(/_/g, ' ')
+      return projects.find(p => p.name.toLowerCase() === n)?.id ?? target
+    }
+    let count = 0
+    let order = Date.now()
+    const add = async (item, parent) => {
+      const task = await createTask({
+        title: item.title.slice(0, 500),
+        notes: item.notes || '',
+        priority: item.priority || 0,
+        dueDate: item.dueDate || null,
+        dueTime: item.dueTime || null,
+        tags: await Promise.all((item.tags || []).map(tagId)),
+        projectId: parent ? parent.projectId : projectFor(item.project),
+        parentId: parent?.id ?? null,
+        order: order++,
+      })
+      count++
+      if (item.done) await completeTask(task.id)
+      for (const child of item.children || []) await add(child, task)
+    }
+    for (const item of items) await add(item, null)
+    return { count, projectId: target }
+  }), [grouped, createTask, createTag, createProject, completeTask])
+
   const value = {
     state,
     dispatch,
@@ -629,7 +671,7 @@ export const StoreProvider = ({ children }) => {
     createTag, updateTag, deleteTag,
     bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,
     restoreFromTrash, deletePermanently, emptyTrash, restoreVersion,
-    createList, updateList, deleteList,
+    createList, updateList, deleteList, importItems,
     undo, redo,
     importData, reloadAll,
   }

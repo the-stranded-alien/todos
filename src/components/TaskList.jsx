@@ -1,9 +1,12 @@
 // ── Task list ──────────────────────────────────────────────
 import { useMemo, useState, useCallback, useRef } from 'react'
-import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp, Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Search, Folder, Tag } from '../icons.jsx'
+import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp, Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Search, Folder, Tag, MoreHorizontal, Share, FileText, Download, Upload } from '../icons.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
 import { IconButton } from './ui/IconButton.jsx'
-import { Menu } from './ui/Menu.jsx'
+import { Menu, MenuButton } from './ui/Menu.jsx'
+import { toMarkdown, toTodoTxt } from '../utils/textFormats.js'
+import { downloadText } from '../utils/export.js'
+import { toast } from '../toast.js'
 import { focusTaskDetail, focusTaskDetailHeading, moveTaskFocus } from '../utils/focus.js'
 import { NARROW } from '../hooks/useMediaQuery.js'
 import { matchesRules, describeRules, rulesFromFilters } from '../utils/smartLists.js'
@@ -36,7 +39,7 @@ const ViewEmpty = ({ view, searching }) => {
   return <EmptyState icon={e.icon} title={e.title}>{e.sub}</EmptyState>
 }
 
-export const TaskList = ({ quickAddRef, onEditList }) => {
+export const TaskList = ({ quickAddRef, onEditList, onShare, onImport }) => {
   const { state, dispatch, reorderTasks, updateList } = useStore()
   const { tasks, projects, tags, view, filters, selectedTaskId, bulkSelected, searchQuery } = state
   const lists = state.lists
@@ -194,6 +197,16 @@ export const TaskList = ({ quickAddRef, onEditList }) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
   }
 
+  // Share / export: the tasks visible in this view (top level; subtasks come along)
+  const tagsById = new Map(tags.map(t => [t.id, t.name]))
+  const listForExport = () => (view === 'completed' ? completedTasks : [...activeTasks, ...completedTasks])
+  const fileBase = () => viewTitle.replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'tasks'
+  const markdown = () => toMarkdown(viewTitle, listForExport(), tasks, tagsById)
+  const copyMarkdown = async () => {
+    try { await navigator.clipboard.writeText(markdown()); toast({ message: 'Copied as a Markdown checklist.', tone: 'success' }) }
+    catch { toast({ message: 'Couldn’t copy. Try “Download as Markdown” instead.', tone: 'warning' }) }
+  }
+
   const showQuickAdd = view !== 'completed' && view !== 'calendar' && view !== 'stats'
 
   return (
@@ -218,6 +231,20 @@ export const TaskList = ({ quickAddRef, onEditList }) => {
               {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} <X size={10} />
             </button>
           )}
+
+          <MenuButton
+            label="Share, export and import"
+            icon={MoreHorizontal}
+            items={[
+              { label: 'Share this list…', icon: Share, onSelect: () => onShare?.(viewTitle, listForExport()), disabled: !listForExport().length },
+              { separator: true },
+              { label: 'Copy as Markdown', icon: FileText, onSelect: copyMarkdown, disabled: !listForExport().length },
+              { label: 'Download as Markdown (.md)', icon: Download, onSelect: () => downloadText(markdown(), `${fileBase()}.md`, 'text/markdown'), disabled: !listForExport().length },
+              { label: 'Download as todo.txt', icon: Download, onSelect: () => downloadText(toTodoTxt(listForExport(), tasks, { projectsById: new Map(projects.map(p => [p.id, p.name])), tagsById }), `${fileBase()}-todo.txt`, 'text/plain'), disabled: !listForExport().length },
+              { separator: true },
+              { label: 'Import tasks…', icon: Upload, onSelect: () => onImport?.({ projectId: currentProjectId }) },
+            ]}
+          />
 
           <IconButton
             label="Filters"

@@ -32,7 +32,7 @@ const fuzzyMatch = (str, query) => {
   return qi === q.length
 }
 
-export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings, onOpenHelp, onShowShortcuts, quickAddRef }) => {
+export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings, onOpenHelp, onShowShortcuts, onImport, quickAddRef }) => {
   const { state, dispatch } = useStore()
   const prefs = usePrefs()
   const appearanceCmds = useMemo(() => [
@@ -46,6 +46,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings
     { id: 'settings:Features', label: 'Settings: Features', icon: Settings, group: 'App' },
     { id: 'settings:Storage', label: 'Settings: Storage and backups', icon: Settings, group: 'App' },
     { id: 'help', label: 'Open help', icon: HelpCircle, group: 'App' },
+    { id: 'import', label: 'Import tasks from Markdown or todo.txt…', icon: Download, group: 'Data' },
     { id: 'shortcuts', label: 'Keyboard shortcuts', icon: Keyboard, group: 'App' },
     { id: 'toggle-reduce-motion', label: prefs.reduceMotion ? 'Allow animations' : 'Reduce motion', icon: Settings, group: 'Appearance' },
     { id: 'persist-storage', label: 'Keep my data on this device (persistent storage)', icon: Download, group: 'Data' },
@@ -97,6 +98,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings
     else if (item.id === 'toggle-high-contrast') { setPrefs(p => ({ highContrast: !p.highContrast })); onClose() }
     else if (item.id.startsWith('settings:')) onOpenSettings(item.id.slice(9))
     else if (item.id === 'help') onOpenHelp()
+    else if (item.id === 'import') onImport()
     else if (item.id === 'shortcuts') onShowShortcuts()
     else if (item.id === 'toggle-reduce-motion') { setPrefs(p => ({ reduceMotion: !p.reduceMotion })); onClose() }
     else if (item.id === 'persist-storage') {
@@ -124,7 +126,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings
       dispatch({ type: 'SELECT_TASK', id: item.taskId })
       onClose()
     }
-  }, [onClose, onNewProject, onNewTag, onOpenSettings, onOpenHelp, onShowShortcuts, quickAddRef, dispatch])
+  }, [onClose, onNewProject, onNewTag, onOpenSettings, onOpenHelp, onShowShortcuts, onImport, quickAddRef, dispatch])
 
   // Group items; `ordered` is the display order used for highlighting and Enter
   const { groups, ordered } = useMemo(() => {

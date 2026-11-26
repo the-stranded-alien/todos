@@ -243,11 +243,14 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 - **Bugs found while testing and fixed:** (1) a race at the end of a focus phase: "stop timer" and "record session" both rewrote the task, so the timer stayed running; they now run in order. (2) QuickAdd's delayed refocus could put focus *behind* an open modal (e.g. focus mode); it now never refocuses while a modal is open.
 - **Verified:** 3 unit tests. A browser check on Playwright's fake clock: P → 30s → "00:30" → session ends → toast + Short break running → break ends → "Start focus"; the task shows 1 session, about 60s tracked and no timer running; Stats tile shows 1. Axe 0 with focus mode + timer at 1280 and 390. Screenshot reviewed.
 
-### 9. Share a list by link; Markdown / todo.txt ⬜ (M)
-- [ ] **Share link**: a project or selection compressed into the URL fragment (no server; nothing leaves the device until the user sends the link). Opening it shows a read-only preview with "Add to my tasks"
-- [ ] Export a project as a Markdown checklist (`- [ ] task`) or todo.txt; copy to clipboard
-- [ ] Import: paste or drop Markdown checklists / todo.txt / plain lines; preview before adding; one undo step
+### 9. Share a list by link; Markdown / todo.txt ✅ (Batch 17) (M)
+- [x] **Share link**: a project or selection compressed into the URL fragment (no server; nothing leaves the device until the user sends the link). Opening it shows a read-only preview with "Add to my tasks"
+- [x] Export a project as a Markdown checklist (`- [x] task`) or todo.txt; copy to clipboard
+- [x] Import: paste or drop Markdown checklists / todo.txt / plain lines; preview before adding; one undo step
 - Guidelines: §1 "a share link carries the document inside the URL itself", §10 clipboard
+- **Notes:** Share links put the tasks (names, notes, dates, priority, tag names, subtasks; no ids, timers or history) into the URL fragment, compressed with `CompressionStream('deflate-raw')` and base64url (plain JSON fallback). The fragment never reaches a server. Opening a link shows a read-only preview; "Add" goes to a new project named after the list, the Inbox or an existing project, as one undo step. Missing tags are created by name. The address bar is cleaned; links opened while the app is running work too (`hashchange`); damaged links say so. Very long links get a warning. The list header's ⋯ menu has Share, Copy as Markdown, Download Markdown / todo.txt and Import; the selection bar has Share. Import accepts pasted text, a chosen file or a **.md/.txt dropped anywhere**, detects Markdown checklists (indent → subtasks, `> ` → notes) / todo.txt / plain lines, previews with per-item checkboxes, and can understand dates/tags/priority per line.
+- **Pre-existing bug fixed:** quick-add's `!1`–`!3` priorities never worked (the pattern needed a word boundary before `!`), and `p4`/`!4` set an invalid priority 4. Help documented both forms; regression tests added.
+- **Verified:** 8 format tests (compressed round trip with emoji and subtasks, damaged links, Markdown/todo.txt export, Markdown round trip, todo.txt and plain-line import, nested numbered lists) + 5 quick-add priority tests. Browser: build a project with a subtask → copy Markdown (clipboard read back) → share link → open it **in a separate browser profile** → preview → add → project, tasks and subtask appear; broken link → plain message; import with one item unchecked → Undo removes all; dropped `list.txt` opens the import preview as todo.txt. Axe 0 for the share and import dialogs at 1280 and 390.
 
 ### 10. On-device AI: smart quick-add and weekly review ⬜ (M)
 - [ ] **Smart quick-add**: paste messy text (an email, meeting notes) → on-device model extracts tasks with dates/priorities; review checklist before adding (fallback: one task per line + existing date parser)
@@ -299,3 +302,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 14 — Flexible repeats | 2026-11-26 | _see git log_ | lint ✔ · 97 tests ✔ · build ✔ · interactions ✔ · 22-step walk-through ✔ · axe 0 |
 | 15 — Pomodoro | 2026-11-26 | _see git log_ | lint ✔ · 100 tests ✔ · build ✔ · interactions ✔ (fake clock) · walk-through ✔ · axe 0 |
 | 16 — Reminders & calendar | 2026-11-26 | _see git log_ | lint ✔ · 108 tests ✔ · build ✔ · interactions ✔ (fake clock + real notifications) · walk-through ✔ · PWA ✔ · axe 0 |
+| 17 — Share & import/export | 2026-11-26 | _see git log_ | lint ✔ · 117 tests ✔ · build ✔ · interactions ✔ (3 clean runs) · walk-through ✔ · PWA ✔ · axe 0 |

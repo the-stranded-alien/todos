@@ -33,4 +33,12 @@ describe('parseTaskInput', () => {
     expect(p.dueDate).toBeNull()
     expect(p.dueTime).toBe('09:30')
   })
+
+  it('reads !1–!3 as well as p1–p3, and ignores p4 or words like "p3x"', () => {
+    expect(parseTaskInput('Ship it !3').priority).toBe(3)
+    expect(parseTaskInput('!2 Fix bug').priority).toBe(2)
+    expect(parseTaskInput('Use p4 paper').priority).toBe(0)
+    expect(parseTaskInput('Buy p3x cable').priority).toBe(0)
+    expect(parseTaskInput('Ship it !3').title).toBe('Ship it')
+  })
 })

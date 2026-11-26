@@ -149,6 +149,16 @@ for (const width of WIDTHS) {
         await page.getByRole('combobox', { name: 'Reminder' }).selectOption('none').catch(() => {})
         await page.keyboard.press('Escape')
       }],
+      ['share dialog', async () => {
+        await page.getByRole('button', { name: 'Share, export and import' }).click()
+        await page.getByRole('menuitem', { name: 'Share this list…' }).click()
+        await page.waitForFunction(() => document.querySelector('#share-url')?.value.includes('#share='))
+      }, async () => { await page.keyboard.press('Escape') }],
+      ['import dialog', async () => {
+        await page.getByRole('button', { name: 'Share, export and import' }).click()
+        await page.getByRole('menuitem', { name: 'Import tasks…' }).click()
+        await page.getByRole('textbox', { name: 'Text' }).fill('- [ ] One #x\n  - [ ] Two\n- [ ] Three tomorrow')
+      }, async () => { await page.keyboard.press('Escape') }],
       ['filters open', async () => { await page.getByRole('button', { name: 'Filters' }).click() }, async () => { await page.getByRole('button', { name: 'Filters' }).click() }],
       ['command palette', async () => { await page.keyboard.press('Control+k'); await page.keyboard.type('go') }, async () => { await page.keyboard.press('Escape') }],
       ['shortcuts dialog', async () => { await page.keyboard.press('?') }, async () => { await page.keyboard.press('Escape') }],

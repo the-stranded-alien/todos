@@ -41,10 +41,10 @@ export const parseTaskInput = (raw) => {
     return ''
   })
 
-  // Extract priority p1-p4 or !1-!4
-  title = title.replace(/\b[p!]([1-4])\b/gi, (match, n) => {
+  // Extract priority p1–p3 or !1–!3 (1 = low … 3 = high)
+  title = title.replace(/(^|\s)[pP!]([1-3])(?=\s|$)/g, (match, lead, n) => {
     priority = parseInt(n)
-    return ''
+    return lead
   })
 
   // Extract @project
