@@ -11,14 +11,31 @@ const AXE = readFileSync(resolve('node_modules/axe-core/axe.min.js'), 'utf8')
 mkdirSync(OUT, { recursive: true })
 
 const VIEWS = ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats']
-const THEMES = (process.env.THEMES || 'light,dark').split(',')
-const WIDTHS = [1280, 390]
+const THEMES = (process.env.THEMES || 'light,dark').split(',')  // add +hc for high contrast, e.g. dark+hc
+const WIDTHS = (process.env.WIDTHS || '1280,390').split(',').map(Number)
 
 const seed = async (page) => {
+  // projects and tags straight into IndexedDB, tasks through the real quick-add box
+  await page.evaluate(() => new Promise((res, rej) => {
+    const req = indexedDB.open('todos-db')
+    req.onsuccess = () => {
+      const tx = req.result.transaction(['projects', 'tags'], 'readwrite')
+      tx.objectStore('projects').put({ id: 'p-work', name: 'work', color: '#f59e0b', icon: 'Briefcase', order: 1, createdAt: 1 })
+      tx.objectStore('tags').put({ id: 't-urgent', name: 'urgent', color: '#84cc16', createdAt: 1 })
+      tx.objectStore('tags').put({ id: 't-home', name: 'home', color: '#06b6d4', createdAt: 1 })
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error)
+    }
+    req.onerror = () => rej(req.error)
+  }))
+  await page.reload()
   const input = page.getByRole('textbox', { name: 'Quick add task' })
-  for (const t of ['Plan sprint today p1 #work', 'Buy groceries tomorrow', 'Read a book in 3 days p3', 'Call the bank today 4:30pm']) {
+  await input.waitFor()
+  for (const t of ['Plan sprint today p1 #urgent @work', 'Buy groceries tomorrow #home', 'Read a book in 3 days p3', 'Call the bank today 4:30pm p2', 'Pay rent yesterday']) {
     await input.fill(t); await input.press('Enter')
   }
+  // one completed task
+  await page.getByRole('button', { name: 'Mark complete' }).last().click()
+  await page.waitForTimeout(500)
 }
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true })
@@ -34,10 +51,10 @@ for (const width of WIDTHS) {
   await seed(page)
 
   for (const theme of THEMES) {
-    await page.evaluate(t => {
-      if (window.__setTheme) window.__setTheme(t)
-      else document.documentElement.classList.toggle('dark', t === 'dark')
-    }, theme)
+    const [id, hc] = theme.split('+')
+    await page.evaluate(p => localStorage.setItem('todos-prefs', JSON.stringify(p)), { theme: id, extraThemes: true, highContrast: hc === 'hc' })
+    await page.reload()
+    await page.getByRole('textbox', { name: 'Quick add task' }).waitFor()
     for (const view of VIEWS) {
       await page.evaluate(v => window.dispatchEvent(new CustomEvent('todos:set-view', { detail: v })), view)
       await page.waitForTimeout(450)

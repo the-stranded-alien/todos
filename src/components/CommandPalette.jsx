@@ -1,14 +1,14 @@
 // ── Command palette ────────────────────────────────────────
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { Search, Plus, Folder, Tag, LayoutList, Sun, Moon, CheckSquare } from 'lucide-react'
+import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare } from 'lucide-react'
 import { useStore } from '../store/context.js'
-import { toggleDark } from '../hooks/useIsDark.js'
+import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
+import { availableThemes } from '../themes.js'
 
 const STATIC_COMMANDS = [
   { id: 'new-task',     label: 'New Task',         icon: Plus,       group: 'Actions' },
   { id: 'new-project',  label: 'New Project',       icon: Folder,     group: 'Actions' },
   { id: 'new-tag',      label: 'New Tag',           icon: Tag,        group: 'Actions' },
-  { id: 'toggle-dark',  label: 'Toggle Dark Mode',  icon: Moon,       group: 'Actions' },
   { id: 'view-inbox',   label: 'Go to Inbox',       icon: LayoutList, group: 'Views' },
   { id: 'view-today',   label: 'Go to Today',       icon: Sun,        group: 'Views' },
   { id: 'view-all',     label: 'Go to All Tasks',   icon: LayoutList, group: 'Views' },
@@ -30,6 +30,15 @@ const fuzzyMatch = (str, query) => {
 
 export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef }) => {
   const { state, dispatch } = useStore()
+  const prefs = usePrefs()
+  const appearanceCmds = useMemo(() => [
+    ...availableThemes(prefs.extraThemes).map(t => ({
+      id: `theme:${t.id}`, label: `Theme: ${t.label}${resolvedTheme(prefs) === t.id ? ' (current)' : ''}`, icon: Palette, group: 'Appearance',
+    })),
+    { id: 'toggle-extra-themes', label: prefs.extraThemes ? 'Hide additional themes' : 'Show additional themes', icon: Palette, group: 'Appearance' },
+    { id: 'toggle-high-contrast', label: prefs.highContrast ? 'Turn off high contrast' : 'Turn on high contrast', icon: Contrast, group: 'Appearance' },
+    { id: 'toggle-density', label: prefs.density === 'compact' ? 'Use comfortable density' : 'Use compact density', icon: Rows3, group: 'Appearance' },
+  ], [prefs])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef(null)
@@ -62,16 +71,19 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
       .filter(t => !t.completed)
       .map(t => ({ id: `task:${t.id}`, label: t.title, icon: CheckSquare, group: 'Tasks', taskId: t.id }))
 
-    const all = [...STATIC_COMMANDS, ...projectCmds, ...tagCmds, ...taskCmds]
+    const all = [...STATIC_COMMANDS, ...appearanceCmds, ...projectCmds, ...tagCmds, ...taskCmds]
     return all.filter(item => fuzzyMatch(item.label, query))
-  }, [query, state.tasks, state.projects, state.tags])
+  }, [query, state.tasks, state.projects, state.tags, appearanceCmds])
 
 
   const execute = useCallback((item) => {
     if (item.id === 'new-task') { onClose(); setTimeout(() => quickAddRef?.current?.focus(), 50) }
     else if (item.id === 'new-project') { onClose(); onNewProject() }
     else if (item.id === 'new-tag') { onClose(); onNewTag() }
-    else if (item.id === 'toggle-dark') { toggleDark(); onClose() }
+    else if (item.id.startsWith('theme:')) { onClose(); withThemeTransition(() => setPrefs({ theme: item.id.slice(6) })) }
+    else if (item.id === 'toggle-extra-themes') { setPrefs(p => ({ extraThemes: !p.extraThemes })); onClose() }
+    else if (item.id === 'toggle-high-contrast') { setPrefs(p => ({ highContrast: !p.highContrast })); onClose() }
+    else if (item.id === 'toggle-density') { setPrefs(p => ({ density: p.density === 'compact' ? 'comfortable' : 'compact' })); onClose() }
     else if (item.id.startsWith('view-')) {
       dispatch({ type: 'SET_VIEW', view: item.id.slice(5) })
       onClose()
@@ -108,8 +120,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-24"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)' }}
+      className="backdrop fixed inset-0 z-50 flex items-start justify-center pt-24"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div

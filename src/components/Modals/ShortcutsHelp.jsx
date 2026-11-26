@@ -21,8 +21,7 @@ const SHORTCUTS = [
 
 export const ShortcutsHelp = ({ onClose }) => (
   <div
-    className="fixed inset-0 z-50 flex items-center justify-center"
-    style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+    className="backdrop fixed inset-0 z-50 flex items-center justify-center"
     onClick={e => { if (e.target === e.currentTarget) onClose() }}
   >
     <div

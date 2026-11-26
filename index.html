@@ -11,15 +11,27 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <meta name="theme-color" content="#ebecf6" />
     <script>
-      // Apply dark mode before render to avoid flash
+      // Apply the saved theme before first paint (keep in sync with src/themes.js)
       ;(function () {
-        let stored = null
-        try { stored = localStorage.getItem('theme') } catch (e) {}
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        if (stored === 'dark' || (!stored && prefersDark)) {
-          document.documentElement.classList.add('dark')
-        }
+        var DARK = ['dark', 'ocean', 'nord', 'monokai', 'neon', 'neon-blue', 'neon-green', 'neon-purple', 'neon-rainbow']
+        var EXTRA = ['ocean', 'forest', 'sun', 'nord', 'monokai', 'solarized', 'neon', 'neon-blue', 'neon-green', 'neon-purple', 'neon-rainbow']
+        var p = {}
+        try {
+          var raw = localStorage.getItem('todos-prefs')
+          if (raw) p = JSON.parse(raw) || {}
+          else { var legacy = localStorage.getItem('theme'); if (legacy) p.theme = legacy }
+        } catch (e) {}
+        var t = p.theme
+        if (!t) { try { t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' } catch (e) { t = 'light' } }
+        if (EXTRA.indexOf(t) >= 0 && !p.extraThemes) t = DARK.indexOf(t) >= 0 ? 'dark' : 'light'
+        var c = document.documentElement.classList
+        if (DARK.indexOf(t) >= 0) c.add('dark')
+        if (t.indexOf('neon') === 0) { c.add('theme-neon'); if (t !== 'neon') c.add('theme-' + t) }
+        else if (t !== 'light' && t !== 'dark') c.add('theme-' + t)
+        if (p.highContrast) c.add('high-contrast')
+        document.documentElement.setAttribute('data-density', p.density || 'comfortable')
       })()
     </script>
   </head>

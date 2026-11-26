@@ -4,8 +4,9 @@ import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw } from 'lu
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { useElapsed } from '../hooks/useElapsed.js'
+import { PRIORITY_VARS, tint, ink } from '../utils/colors.js'
 
-const PRIORITY_COLORS = ['transparent', '#3b82f6', '#eab308', '#ef4444']
+const PRIORITY_COLORS = ['transparent', ...PRIORITY_VARS.slice(1)]
 
 const formatDuration = (ms) => {
   if (!ms) return null
@@ -101,7 +102,7 @@ export const TaskRow = ({
           display: 'flex',
           alignItems: hasMeta ? 'flex-start' : 'center',
           gap: 8,
-          padding: '9px 10px',
+          padding: 'var(--row-py) 10px',
           marginBottom: 3,
           borderRadius: 10,
           cursor: 'pointer',
@@ -162,7 +163,7 @@ export const TaskRow = ({
           }}
         >
           {task.completed && (
-            <svg width="9" height="7" viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="9" height="7" viewBox="0 0 10 8" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M1 4l3 3 5-6" />
             </svg>
           )}
@@ -206,7 +207,7 @@ export const TaskRow = ({
           {hasMeta && (
             <div className="flex items-center flex-wrap mt-0.5" style={{ gap: '6px' }}>
               {task.dueDate && (
-                <span style={{ fontSize: '.7rem', color: isOverdue ? '#ef4444' : 'var(--text-4)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ fontSize: '.7rem', color: isOverdue ? 'var(--danger)' : 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 3 }}>
                   <Calendar size={10} />
                   {formatDate(task.dueDate)}{task.dueTime ? ` · ${task.dueTime}` : ''}
                 </span>
@@ -217,7 +218,7 @@ export const TaskRow = ({
                 </span>
               )}
               {tagObjs.map(tag => (
-                <span key={tag.id} className="tag-chip" style={{ background: tag.color + '1a', color: tag.color, fontSize: '.65rem', padding: '1px 6px' }}>
+                <span key={tag.id} className="tag-chip" style={{ background: tint(tag.color), color: ink(tag.color), fontSize: '.65rem', padding: '1px 6px' }}>
                   {tag.name}
                 </span>
               ))}

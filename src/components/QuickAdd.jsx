@@ -5,9 +5,10 @@ import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
 import { parseTaskInput } from '../utils/nlpParse.js'
 import { useSpeech } from '../hooks/useSpeech.js'
+import { PRIORITY_VARS, tint } from '../utils/colors.js'
 
 const PRIORITY_LABELS = ['none', 'low', 'med', 'high']
-const PRIORITY_COLORS = ['var(--text-4)', '#3b82f6', '#eab308', '#ef4444']
+const PRIORITY_COLORS = PRIORITY_VARS
 
 export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
   const { createTask, state } = useStore()
@@ -140,7 +141,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
             </span>
           )}
           {parsed?.priority > 0 && (
-            <span className="tag-chip" style={{ background: PRIORITY_COLORS[parsed.priority] + '22', color: PRIORITY_COLORS[parsed.priority], border: `1px solid ${PRIORITY_COLORS[parsed.priority]}44` }}>
+            <span className="tag-chip" style={{ background: tint(PRIORITY_COLORS[parsed.priority]), color: PRIORITY_COLORS[parsed.priority], border: `1px solid ${tint(PRIORITY_COLORS[parsed.priority], 35)}` }}>
               <Flag size={10} /> {PRIORITY_LABELS[parsed.priority]}
             </span>
           )}

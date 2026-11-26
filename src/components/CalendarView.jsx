@@ -104,7 +104,7 @@ export const CalendarView = () => {
                     <span style={{
                       fontSize: '.8rem',
                       fontWeight: isToday ? 700 : 400,
-                      color: isToday ? '#fff' : isSelected ? 'var(--accent)' : 'var(--text-2)',
+                      color: isToday ? 'var(--on-accent)' : isSelected ? 'var(--accent)' : 'var(--text-2)',
                       background: isToday ? 'var(--accent)' : 'transparent',
                       borderRadius: '50%',
                       width: 22,
@@ -166,7 +166,7 @@ export const CalendarView = () => {
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <div className={`custom-checkbox ${t.completed ? 'checked' : ''}`} style={{ width: 15, height: 15, pointerEvents: 'none' }}>
-                {t.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
+                {t.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
               </div>
               <span style={{ color: t.completed ? 'var(--text-4)' : 'var(--text-1)', fontSize: '.875rem', textDecoration: t.completed ? 'line-through' : 'none' }}>
                 {t.title}

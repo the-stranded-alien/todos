@@ -44,19 +44,10 @@ export const FocusMode = ({ onClose }) => {
             {remaining} task{remaining !== 1 ? 's' : ''} remaining
           </div>
 
-          <div
-            className="focus-mode-task"
-            style={{
-              background: 'var(--bg-card)',
-              border: '2px solid var(--border)',
-              borderRadius: 24,
-              padding: '3rem 4rem',
-              width: '100%',
-              textAlign: 'center',
-              boxShadow: 'var(--shadow-lg)',
-            }}
-          >
-            {firstTask.title}
+          <div className="focus-frame" style={{ width: '100%' }}>
+            <div className="focus-mode-task">
+              {firstTask.title}
+            </div>
           </div>
 
           {firstTask.notes && (

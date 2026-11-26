@@ -268,8 +268,8 @@ export const TaskList = ({ quickAddRef }) => {
               Has due date
             </label>
 
-            <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: '.8rem', color: '#ef4444' }}>
-              <input type="checkbox" checked={filters.overdue} onChange={e => dispatch({ type: 'SET_FILTER', filters: { overdue: e.target.checked } })} style={{ accentColor: '#ef4444' }} />
+            <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: '.8rem', color: 'var(--danger)' }}>
+              <input type="checkbox" checked={filters.overdue} onChange={e => dispatch({ type: 'SET_FILTER', filters: { overdue: e.target.checked } })} style={{ accentColor: 'var(--danger)' }} />
               Overdue only
             </label>
 

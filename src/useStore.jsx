@@ -2,6 +2,7 @@
 import { useReducer, useCallback, useRef, useEffect } from 'react'
 import { StoreContext } from './store/context.js'
 import { parseLocalISO, toLocalISO } from './utils/dates.js'
+import { DEFAULT_SWATCH } from './utils/colors.js'
 import { nanoid } from './utils/nanoid.js'
 import * as db from './db.js'
 import { addHistory } from './db.js'
@@ -309,7 +310,7 @@ export const StoreProvider = ({ children }) => {
     const project = {
       id: nanoid(),
       name: 'New Project',
-      color: '#6d28d9',
+      color: DEFAULT_SWATCH,
       icon: 'Folder',
       order: Date.now(),
       createdAt: Date.now(),
@@ -346,7 +347,7 @@ export const StoreProvider = ({ children }) => {
     const tag = {
       id: nanoid(),
       name: 'New Tag',
-      color: '#6d28d9',
+      color: DEFAULT_SWATCH,
       createdAt: Date.now(),
       ...fields,
     }

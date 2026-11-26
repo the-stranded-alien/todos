@@ -3,8 +3,7 @@ import { AlertTriangle } from 'lucide-react'
 
 export const ConfirmDelete = ({ message, onConfirm, onCancel }) => (
   <div
-    className="fixed inset-0 z-50 flex items-center justify-center"
-    style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+    className="backdrop fixed inset-0 z-50 flex items-center justify-center"
     onClick={e => { if (e.target === e.currentTarget) onCancel() }}
   >
     <div
@@ -12,7 +11,7 @@ export const ConfirmDelete = ({ message, onConfirm, onCancel }) => (
       style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)' }}
     >
       <div className="flex items-center gap-3 mb-4">
-        <div style={{ color: '#ef4444' }}>
+        <div style={{ color: 'var(--danger)' }}>
           <AlertTriangle size={20} />
         </div>
         <h2 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1rem' }}>Delete?</h2>

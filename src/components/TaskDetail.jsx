@@ -10,12 +10,13 @@ import { ConfirmDelete } from './Modals/ConfirmDelete.jsx'
 import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
 import { renderMarkdown } from '../utils/markdown.js'
+import { tint, ink } from '../utils/colors.js'
 
 const PRIORITY_OPTIONS = [
-  { value: 0, label: 'None',   color: 'var(--text-4)' },
-  { value: 1, label: 'Low',    color: '#3b82f6' },
-  { value: 2, label: 'Medium', color: '#eab308' },
-  { value: 3, label: 'High',   color: '#ef4444' },
+  { value: 0, label: 'None',   color: 'var(--text-3)' },
+  { value: 1, label: 'Low',    color: 'var(--prio-1)' },
+  { value: 2, label: 'Medium', color: 'var(--prio-2)' },
+  { value: 3, label: 'High',   color: 'var(--prio-3)' },
 ]
 
 const FREQ_OPTIONS = ['none','daily','weekly','monthly']
@@ -146,10 +147,10 @@ export const TaskDetail = ({ onClose }) => {
             className="btn flex-1"
             onClick={() => task.completed ? uncompleteTask(task.id) : completeTask(task.id)}
             style={{
-              background: task.completed ? 'rgba(16,185,129,0.1)' : 'var(--bg-card)',
-              color: task.completed ? '#10b981' : 'var(--text-2)',
+              background: task.completed ? tint('var(--success)', 12) : 'var(--bg-card)',
+              color: task.completed ? 'var(--success)' : 'var(--text-2)',
               border: '1px solid',
-              borderColor: task.completed ? 'rgba(16,185,129,0.3)' : 'var(--border)',
+              borderColor: task.completed ? tint('var(--success)', 35) : 'var(--border)',
               fontSize: '.8rem',
             }}
           >
@@ -169,9 +170,9 @@ export const TaskDetail = ({ onClose }) => {
                 style={{
                   fontSize: '.75rem',
                   padding: '4px 6px',
-                  background: task.priority === value ? color + '22' : 'var(--bg-card)',
+                  background: task.priority === value ? tint(color) : 'var(--bg-card)',
                   color: task.priority === value ? color : 'var(--text-3)',
-                  border: `1px solid ${task.priority === value ? color + '55' : 'var(--border)'}`,
+                  border: `1px solid ${task.priority === value ? tint(color, 40) : 'var(--border)'}`,
                   fontWeight: task.priority === value ? 600 : 400,
                 }}
                 aria-label={`Priority: ${label}`}
@@ -235,7 +236,7 @@ export const TaskDetail = ({ onClose }) => {
               onClick={() => setShowTagDropdown(true)}
             >
               {tagObjs.map(tag => (
-                <span key={tag.id} className="tag-chip" style={{ background: tag.color + '22', color: tag.color }}>
+                <span key={tag.id} className="tag-chip" style={{ background: tint(tag.color), color: ink(tag.color) }}>
                   #{tag.name}
                   <button
                     onClick={e => { e.stopPropagation(); toggleTag(tag.id) }}
@@ -377,7 +378,7 @@ export const TaskDetail = ({ onClose }) => {
                   style={{ width: 15, height: 15 }}
                   aria-label={sub.completed ? 'Mark subtask incomplete' : 'Mark subtask complete'}
                 >
-                  {sub.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
+                  {sub.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
                 </button>
                 <span style={{ flex: 1, fontSize: '.825rem', color: sub.completed ? 'var(--text-4)' : 'var(--text-1)', textDecoration: sub.completed ? 'line-through' : 'none' }}>
                   {sub.title}

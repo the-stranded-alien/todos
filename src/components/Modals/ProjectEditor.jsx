@@ -2,15 +2,15 @@
 import { useState } from 'react'
 import { X, Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee } from 'lucide-react'
 import { useStore } from '../../store/context.js'
+import { SWATCHES, DEFAULT_SWATCH, tint, ink } from '../../utils/colors.js'
 
-const COLORS = ['#6d28d9','#4f46e5','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#06b6d4','#84cc16']
 const ICONS = ['Folder','Star','Briefcase','Home','Heart','Book','Code','Music','Camera','Coffee']
 const ICON_MAP = { Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee }
 
 export const ProjectEditor = ({ project, onClose }) => {
   const { createProject, updateProject } = useStore()
   const [name, setName] = useState(project?.name || '')
-  const [color, setColor] = useState(project?.color || '#6d28d9')
+  const [color, setColor] = useState(project?.color || DEFAULT_SWATCH)
   const [icon, setIcon] = useState(project?.icon || 'Folder')
 
   const save = async () => {
@@ -27,8 +27,7 @@ export const ProjectEditor = ({ project, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      className="backdrop fixed inset-0 z-50 flex items-center justify-center"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
@@ -44,7 +43,7 @@ export const ProjectEditor = ({ project, onClose }) => {
 
         {/* Preview */}
         <div className="flex items-center gap-3 mb-5 p-3 rounded-xl" style={{ background: 'var(--bg-surface)' }}>
-          <div className="rounded-lg p-2" style={{ background: color + '22', color }}>
+          <div className="rounded-lg p-2" style={{ background: tint(color), color: ink(color) }}>
             <IconComp size={20} />
           </div>
           <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{name || 'Project Name'}</span>
@@ -62,7 +61,7 @@ export const ProjectEditor = ({ project, onClose }) => {
 
         <label style={{ color: 'var(--text-3)', fontSize: '.8rem', fontWeight: 600 }}>COLOR</label>
         <div className="flex flex-wrap gap-2 mt-1 mb-4">
-          {COLORS.map(c => (
+          {SWATCHES.map(c => (
             <button
               key={c}
               onClick={() => setColor(c)}

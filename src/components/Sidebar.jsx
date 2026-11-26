@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO } from '../utils/dates.js'
+import { tint, ink } from '../utils/colors.js'
 
 const ICON_MAP = {
   Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee,
@@ -105,8 +106,9 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
           return (
             <button
               key={id}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 rounded-lg text-left transition-colors"
               style={{
+                paddingBlock: 'var(--nav-py)',
                 background: active ? 'var(--accent-soft)' : 'transparent',
                 color: active ? 'var(--accent)' : 'var(--text-2)',
                 fontWeight: active ? 600 : 400,
@@ -121,7 +123,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
               {count > 0 && (
                 <span style={{
                   background: active ? 'var(--accent)' : 'var(--bg-card)',
-                  color: active ? '#fff' : 'var(--text-4)',
+                  color: active ? 'var(--on-accent)' : 'var(--text-3)',
                   borderRadius: 99,
                   fontSize: '.7rem',
                   fontWeight: 600,
@@ -179,7 +181,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
               onDrop={e => handleDrop(e, project.id)}
               onDragLeave={() => setDragOverId(null)}
             >
-              <div className="rounded p-1" style={{ background: project.color + '22', color: project.color }}>
+              <div className="rounded p-1" style={{ background: tint(project.color), color: ink(project.color) }}>
                 <Ic size={12} />
               </div>
               <span className="flex-1 truncate" style={{ color: active ? 'var(--accent)' : 'var(--text-2)', fontSize: '.875rem', fontWeight: active ? 600 : 400 }}>

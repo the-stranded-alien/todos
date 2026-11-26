@@ -1,14 +1,19 @@
 // ── Header ─────────────────────────────────────────────────
 import { useRef, useState, useEffect } from 'react'
-import { Search, Moon, Sun, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft } from 'lucide-react'
+import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useStore } from '../store/context.js'
-import { useIsDark, toggleDark } from '../hooks/useIsDark.js'
+import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
+import { getTheme, nextTheme } from '../themes.js'
+import { ThemeIcon } from './ThemeIcon.jsx'
 import * as dbUtils from '../db.js'
 import { exportJSON, exportCSV } from '../utils/export.js'
 
 export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
   const { state, dispatch, importData } = useStore()
-  const isDark = useIsDark()
+  const prefs = usePrefs()
+  const theme = resolvedTheme(prefs)
+  const upcoming = nextTheme(theme, prefs.extraThemes)
+  const cycleTheme = () => withThemeTransition(() => setPrefs({ theme: upcoming }))
   const searchRef = useRef(null)
   const fileRef = useRef(null)
   const [showExportMenu, setShowExportMenu] = useState(false)
@@ -70,7 +75,7 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
 
       {/* Logo */}
       <div className="flex items-center gap-2 mr-3" style={{ flexShrink: 0 }}>
-        <div className="rounded-lg p-1.5" style={{ background: 'var(--accent)', color: '#fff' }}>
+        <div className="logo-tile rounded-lg p-1.5">
           <CheckSquare size={15} />
         </div>
         <span style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text-1)' }}>Todos</span>
@@ -150,14 +155,14 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
           <HelpCircle size={16} />
         </button>
 
-        {/* Dark mode */}
+        {/* Theme */}
         <button
           className="btn btn-ghost p-1.5"
-          onClick={toggleDark}
-          aria-label="Toggle dark mode"
-          title="Toggle dark mode"
+          onClick={cycleTheme}
+          aria-label={`Theme: ${getTheme(theme).label}. Switch to ${getTheme(upcoming).label}`}
+          title={`Theme: ${getTheme(theme).label} (switch to ${getTheme(upcoming).label})`}
         >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          <ThemeIcon key={theme} theme={theme} size={16} className="theme-icon-enter" />
         </button>
       </div>
     </header>

@@ -55,18 +55,19 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - **Notes:** ESLint found 26 problems (incl. `startTimer` calling `stopTimer` before declaration with a stale closure); all fixed. 27 unit/app tests. CI now runs on Node 24 (Vitest 5/jsdom need ≥ 22) and gates deploy on lint + tests. Sidebar project rows had dead drag code; dropping a task on a project now moves it. Blockquotes in notes never rendered (`>` was escaped before matching) — fixed in the new renderer.
 - **Baseline browser run (before Batches 2–6):** 78 problems — `color-contrast` ×28, `aria-required-children`/`-parent` ×20 each (task rows use `role="row"`), `page-has-heading-one` ×8 (calendar, stats), `scrollable-region-focusable` ×2. At 390px the sidebar covers the content and rows are clipped (body overflow hidden, so it's not "horizontal scroll" — Batch 6 adds a clipping check).
 
-### Batch 2 — Design tokens and themes ⬜
-- [ ] Full token set per §3 (surfaces, lines, 4 text tiers, accent set, elevation, `--icon-hover-*`), plus semantic tokens: `--danger`, `--success`, `--warning`, `--info`, `--on-accent`, `--backdrop`, `--prio-1..3`
-- [ ] Fix `--text-4` contrast in every theme (≥ 4.5:1 on every surface)
-- [ ] Remove hard-coded colours from components (user-chosen project/tag colours stay data, rendered with `color-mix`)
-- [ ] `src/themes.js` (`THEMES`, `themeClasses`, `ALL_THEME_CLASSES`, `availableThemes`, `nextTheme`)
-- [ ] Base: Light, Dark, Sepia. Optional ("Additional themes" setting): Ocean, Forest, Nord, Monokai, Solarized, Sun, Neon Pink / Blue / Green / Purple / Rainbow (`theme-neon` family, `--neon-1..6`, `--rainbow`)
-- [ ] `html.high-contrast` works with every theme
-- [ ] `data-density="comfortable|compact"` on the app shell
-- [ ] Theme switch uses View Transitions + `flushSync`, skipped with reduced motion; header button cycles themes with a per-theme icon
-- [ ] Logo tile uses `--logo-bg`; high contrast keeps it readable
-- [ ] Pre-paint script in `index.html` applies the stored theme (no flash)
-- [ ] Global `prefers-reduced-motion` handling for animations
+### Batch 2 — Design tokens and themes ✅
+- [x] Full token set per §3 (surfaces, lines, 4 text tiers, accent set, elevation, `--icon-hover-*`), plus semantic tokens: `--danger`, `--success`, `--warning`, `--info`, `--on-accent`, `--backdrop`, `--prio-1..3`
+- [x] Fix `--text-4` contrast in every theme (≥ 4.5:1 on every surface)
+- [x] Remove hard-coded colours from components (user-chosen project/tag colours stay data, rendered with `color-mix`)
+- [x] `src/themes.js` (`THEMES`, `themeClasses`, `ALL_THEME_CLASSES`, `availableThemes`, `nextTheme`)
+- [x] Base: Light, Dark, Sepia. Optional ("Additional themes" setting): Ocean, Forest, Nord, Monokai, Solarized, Sun, Neon Pink / Blue / Green / Purple / Rainbow (`theme-neon` family, `--neon-1..6`, `--rainbow`)
+- [x] `html.high-contrast` works with every theme
+- [x] `data-density="comfortable|compact"` on the app shell
+- [x] Theme switch uses View Transitions + `flushSync`, skipped with reduced motion; header button cycles themes with a per-theme icon
+- [x] Logo tile uses `--logo-bg`; high contrast keeps it readable
+- [x] Pre-paint script in `index.html` applies the stored theme (no flash)
+- [x] Global `prefers-reduced-motion` handling for animations
+- **Notes:** Old `--text-4` was 2.4:1; new tiers pass everywhere. `e2e/contrast.mjs` checks 9 text tokens × 5 surfaces (incl. tinted selected rows) + text-on-accent in 14 themes × high contrast: **0 failing pairs** (first run had 50, mostly accent-on-tint). Axe sweep over all 28 variants × 7 views: **0 `color-contrast`** (baseline 28). User-chosen project/tag colours stay data and render through `tint()`/`ink()` so labels stay readable. Header theme button cycles with a per-theme icon (still Lucide until Batch 3); appearance commands are in the palette until Settings lands (Batch 8). Prefs live in `todos-prefs`; the old `theme` key is migrated. Rainbow/gradient `--frame` used on the focus-mode card. Verified in Chrome: cycling, reload persistence, no console errors.
 
 ### Batch 3 — Icons ⬜
 - [ ] Add `@icon-park/react`; `src/icons.jsx` wrapper (`make()`, slot colours, `IconStyleContext`, size → style, `aria-hidden` by default)
@@ -169,4 +170,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 
 | Batch | Date | Commit | Verified |
 |---|---|---|---|
-| 1 — Tooling & quick fixes | 2026-11-26 | _see git log_ | lint ✔ · 27 tests ✔ · build ✔ · Chrome sweep ran (baseline recorded) |
+| 1 — Tooling & quick fixes | 2026-11-26 | `633f7f4` | lint ✔ · 27 tests ✔ · build ✔ · Chrome sweep ran (baseline recorded) |
+| 2 — Tokens & themes | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · contrast audit 0 fails · axe contrast 0 in 28 variants |
