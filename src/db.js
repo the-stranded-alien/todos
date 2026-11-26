@@ -1,32 +1,37 @@
 // ── IndexedDB setup ────────────────────────────────────────
 import { openDB } from 'idb'
+import { announceChange } from './sync.js'
 
 const DB_NAME = 'todos-db'
-const DB_VERSION = 1
+const DB_VERSION = 2
+const MAX_SNAPSHOTS = 5
 
 let _db = null
 
 export const getDB = async () => {
   if (_db) return _db
   _db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // tasks
-      const tasks = db.createObjectStore('tasks', { keyPath: 'id' })
-      tasks.createIndex('projectId', 'projectId')
-      tasks.createIndex('dueDate', 'dueDate')
-      tasks.createIndex('completed', 'completed')
-      tasks.createIndex('parentId', 'parentId')
-      tasks.createIndex('tags', 'tags', { multiEntry: true })
-
-      // projects
-      db.createObjectStore('projects', { keyPath: 'id' })
-
-      // tags
-      db.createObjectStore('tags', { keyPath: 'id' })
-
-      // history
-      const history = db.createObjectStore('history', { keyPath: 'id' })
-      history.createIndex('taskId', 'taskId')
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        const tasks = db.createObjectStore('tasks', { keyPath: 'id' })
+        tasks.createIndex('projectId', 'projectId')
+        tasks.createIndex('dueDate', 'dueDate')
+        tasks.createIndex('completed', 'completed')
+        tasks.createIndex('parentId', 'parentId')
+        tasks.createIndex('tags', 'tags', { multiEntry: true })
+        db.createObjectStore('projects', { keyPath: 'id' })
+        db.createObjectStore('tags', { keyPath: 'id' })
+        const history = db.createObjectStore('history', { keyPath: 'id' })
+        history.createIndex('taskId', 'taskId')
+      }
+      if (oldVersion < 2) {
+        // Whole-workspace snapshots taken before risky operations (restore, clear)
+        db.createObjectStore('snapshots', { keyPath: 'id' })
+      }
+    },
+    blocking() {
+      // Another tab needs a newer schema: let it upgrade
+      _db?.close(); _db = null
     },
   })
   return _db
@@ -45,12 +50,28 @@ export const getTask = async (id) => {
 
 export const putTask = async (task) => {
   const db = await getDB()
-  await db.put('tasks', { ...task, updatedAt: Date.now() })
+  await db.put('tasks', { ...task, updatedAt: task.updatedAt ?? Date.now() })
+  announceChange()
+}
+
+export const putTasks = async (tasks) => {
+  const db = await getDB()
+  const tx = db.transaction('tasks', 'readwrite')
+  await Promise.all([...tasks.map(t => tx.store.put(t)), tx.done])
+  announceChange()
+}
+
+export const deleteTasks = async (ids) => {
+  const db = await getDB()
+  const tx = db.transaction('tasks', 'readwrite')
+  await Promise.all([...ids.map(id => tx.store.delete(id)), tx.done])
+  announceChange()
 }
 
 export const deleteTask = async (id) => {
   const db = await getDB()
   await db.delete('tasks', id)
+  announceChange()
 }
 
 // ── Project helpers ────────────────────────────────────────
@@ -62,11 +83,13 @@ export const getProjects = async () => {
 export const putProject = async (project) => {
   const db = await getDB()
   await db.put('projects', project)
+  announceChange()
 }
 
 export const deleteProject = async (id) => {
   const db = await getDB()
   await db.delete('projects', id)
+  announceChange()
 }
 
 // ── Tag helpers ────────────────────────────────────────────
@@ -78,11 +101,13 @@ export const getTags = async () => {
 export const putTag = async (tag) => {
   const db = await getDB()
   await db.put('tags', tag)
+  announceChange()
 }
 
 export const deleteTag = async (id) => {
   const db = await getDB()
   await db.delete('tags', id)
+  announceChange()
 }
 
 // ── History helpers ────────────────────────────────────────
@@ -111,13 +136,30 @@ export const exportAll = async () => {
 
 export const importAll = async (data) => {
   const db = await getDB()
-  const tx = db.transaction(['tasks','projects','tags','history'], 'readwrite')
-  for (const store of ['tasks','projects','tags','history']) {
-    await tx.objectStore(store).clear()
-  }
-  for (const task of data.tasks || []) await tx.objectStore('tasks').put(task)
-  for (const p of data.projects || []) await tx.objectStore('projects').put(p)
-  for (const t of data.tags || []) await tx.objectStore('tags').put(t)
-  for (const h of data.history || []) await tx.objectStore('history').put(h)
+  const stores = ['tasks', 'projects', 'tags', 'history']
+  const tx = db.transaction(stores, 'readwrite')
+  await Promise.all(stores.map(st => tx.objectStore(st).clear()))
+  await Promise.all([
+    ...(data.tasks || []).map(t => tx.objectStore('tasks').put(t)),
+    ...(data.projects || []).map(p => tx.objectStore('projects').put(p)),
+    ...(data.tags || []).map(t => tx.objectStore('tags').put(t)),
+    ...(data.history || []).map(h => tx.objectStore('history').put(h)),
+  ])
   await tx.done
+  announceChange()
+}
+
+// ── Snapshots (kept before risky operations) ───────────────
+export const saveSnapshot = async (reason, data) => {
+  const db = await getDB()
+  const snap = { id: `snap-${Date.now()}`, reason, createdAt: Date.now(), counts: { tasks: data.tasks?.length ?? 0 }, data }
+  await db.put('snapshots', snap)
+  const all = (await db.getAll('snapshots')).sort((a, b) => b.createdAt - a.createdAt)
+  await Promise.all(all.slice(MAX_SNAPSHOTS).map(x => db.delete('snapshots', x.id)))
+  return snap
+}
+
+export const getSnapshots = async () => {
+  const db = await getDB()
+  return (await db.getAll('snapshots')).sort((a, b) => b.createdAt - a.createdAt)
 }

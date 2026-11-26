@@ -1,8 +1,10 @@
 // ── Command palette ────────────────────────────────────────
 import { useState, useCallback, useMemo, useRef, useEffect, useId } from 'react'
-import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare } from '../icons.jsx'
+import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare, Download } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { Dialog } from './ui/Dialog.jsx'
+import { requestPersist, PERSIST_DENIED_HELP } from '../utils/persist.js'
+import { toast } from '../toast.js'
 import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
 import { availableThemes } from '../themes.js'
 
@@ -38,6 +40,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
     })),
     { id: 'toggle-extra-themes', label: prefs.extraThemes ? 'Hide additional themes' : 'Show additional themes', icon: Palette, group: 'Appearance' },
     { id: 'toggle-high-contrast', label: prefs.highContrast ? 'Turn off high contrast' : 'Turn on high contrast', icon: Contrast, group: 'Appearance' },
+    { id: 'persist-storage', label: 'Keep my data on this device (persistent storage)', icon: Download, group: 'Data' },
     { id: 'toggle-density', label: prefs.density === 'compact' ? 'Use comfortable density' : 'Use compact density', icon: Rows3, group: 'Appearance' },
   ], [prefs])
   const [query, setQuery] = useState('')
@@ -83,6 +86,14 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
     else if (item.id.startsWith('theme:')) { onClose(); withThemeTransition(() => setPrefs({ theme: item.id.slice(6) })) }
     else if (item.id === 'toggle-extra-themes') { setPrefs(p => ({ extraThemes: !p.extraThemes })); onClose() }
     else if (item.id === 'toggle-high-contrast') { setPrefs(p => ({ highContrast: !p.highContrast })); onClose() }
+    else if (item.id === 'persist-storage') {
+      onClose()
+      requestPersist().then(r => toast(
+        r === 'granted' ? { message: 'Your browser will keep this data until you clear it.', tone: 'success' }
+          : r === 'unsupported' ? { message: 'This browser can’t promise to keep data. Download a backup to be safe.', tone: 'warning' }
+          : { message: PERSIST_DENIED_HELP, tone: 'warning', duration: 9000 },
+      ))
+    }
     else if (item.id === 'toggle-density') { setPrefs(p => ({ density: p.density === 'compact' ? 'comfortable' : 'compact' })); onClose() }
     else if (item.id.startsWith('view-')) {
       dispatch({ type: 'SET_VIEW', view: item.id.slice(5) })

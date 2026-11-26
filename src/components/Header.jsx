@@ -2,7 +2,8 @@
 import { useRef, useEffect } from 'react'
 import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft, X } from '../icons.jsx'
 import { useStore } from '../store/context.js'
-import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
+import { usePrefs, setPrefs, getPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
+import { makeBackup, validateBackup } from '../utils/backup.js'
 import { getTheme, nextTheme } from '../themes.js'
 import { ThemeIcon } from './ThemeIcon.jsx'
 import { IconButton } from './ui/IconButton.jsx'
@@ -12,7 +13,7 @@ import { exportJSON, exportCSV } from '../utils/export.js'
 import { toast } from '../toast.js'
 
 export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, onToggleSidebar }) => {
-  const { state, dispatch, importData } = useStore()
+  const { state, dispatch, importData, undo } = useStore()
   const prefs = usePrefs()
   const theme = resolvedTheme(prefs)
   const upcoming = nextTheme(theme, prefs.extraThemes)
@@ -28,8 +29,9 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, 
   }, [])
 
   const handleExportJSON = async () => {
-    exportJSON(await dbUtils.exportAll())
-    toast({ message: 'Backup downloaded.', tone: 'success' })
+    const data = await dbUtils.exportAll()
+    exportJSON(makeBackup(data, getPrefs()))
+    toast({ message: `Backup downloaded: ${data.tasks.length} tasks, ${data.projects.length} projects, ${data.tags.length} tags.`, tone: 'success' })
   }
 
   const handleExportCSV = async () => {
@@ -42,15 +44,26 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, 
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    let data
+    let raw
     try {
-      data = JSON.parse(await file.text())
+      raw = JSON.parse(await file.text())
     } catch {
       toast({ message: `“${file.name}” isn’t a Todos backup: it isn’t valid JSON.`, tone: 'warning' })
       return
     }
-    await importData(data)
-    toast({ message: `Restored ${data.tasks?.length ?? 0} tasks from “${file.name}”.`, tone: 'success' })
+    const result = validateBackup(raw)
+    if (!result.ok) {
+      toast({ message: `Couldn’t restore “${file.name}”. ${result.error}`, tone: 'warning', duration: 9000 })
+      return
+    }
+    await importData(result.data)
+    if (result.settings) setPrefs(result.settings)
+    toast({
+      message: `Restored ${result.data.tasks.length} tasks from “${file.name}”. Your previous data was saved first.`,
+      tone: 'success',
+      action: { label: 'Undo', onClick: undo },
+      duration: 10000,
+    })
   }
 
   const themeLabel = `Theme: ${getTheme(theme).label} (switch to ${getTheme(upcoming).label})`

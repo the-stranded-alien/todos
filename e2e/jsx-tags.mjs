@@ -15,7 +15,7 @@ for (const f of globSync('src/**/*.jsx')) {
   for (const m of src.matchAll(/(?:const|let|function|class)\s+([A-Z]\w*)/g)) known.add(m[1])
   for (const m of src.matchAll(/(?:const|let)\s*\{([^}]*)\}\s*=/g)) for (const p of m[1].split(',')) { const n = p.trim().split(':').pop().trim(); if (n) known.add(n) }
   for (const m of src.matchAll(/\b([A-Z]\w*)\s*[,}]\s*\)?\s*=>/g)) known.add(m[1])
-  for (const m of src.matchAll(/\b\w+:\s*([A-Z]\w*)\s*(?:=\s*[\w.]+\s*)?[,}]/g)) known.add(m[1])  // { icon: Ic = X }
+  for (const m of src.matchAll(/\b\w+:\s*([A-Z]\w*)\s*(?:=\s*(?:[\w.]+|'[^']*'|"[^"]*")\s*)?[,}]/g)) known.add(m[1])  // { icon: Ic = X }
   for (const tag of used) if (!known.has(tag) && !/^[A-Z]\w*\./.test(tag)) { console.log(`${f}: <${tag}> is not imported or declared`); bad++ }
 }
 // Every name imported from the icon wrapper must be exported by it

@@ -6,7 +6,7 @@ import {
 } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { getTaskHistory } from '../db.js'
-import { ConfirmDelete } from './Modals/ConfirmDelete.jsx'
+import { DraftText } from './ui/DraftText.jsx'
 import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
 import { renderMarkdown } from '../utils/markdown.js'
@@ -38,7 +38,6 @@ export const TaskDetail = ({ onClose }) => {
   const task = state.tasks.find(t => t.id === state.selectedTaskId)
 
   const [showPreview, setShowPreview] = useState(false)
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [history, setHistory] = useState([])
   const [newSubtask, setNewSubtask] = useState('')
   const [tagSearch, setTagSearch] = useState('')
@@ -67,11 +66,16 @@ export const TaskDetail = ({ onClose }) => {
     updateTask(task.id, changes)
   }, [task, updateTask])
 
+  // Deleting is immediate and undoable (subtasks included)
   const handleDelete = useCallback(async () => {
-    await deleteTask(task.id)
-    setShowConfirmDelete(false)
+    const title = task.title || 'Untitled'
+    const n = await deleteTask(task.id)
     onClose()
-  }, [task, deleteTask, onClose])
+    toast({
+      message: n > 1 ? `Deleted “${title}” and ${n - 1} subtask${n > 2 ? 's' : ''}.` : `Deleted “${title}”.`,
+      action: { label: 'Undo', onClick: undo },
+    })
+  }, [task, deleteTask, onClose, undo])
 
   const handleAddSubtask = useCallback(async (e) => {
     if (e.key !== 'Enter' || !newSubtask.trim()) return
@@ -116,11 +120,13 @@ export const TaskDetail = ({ onClose }) => {
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
         {/* Title */}
-        <textarea
+        <DraftText
+          key={`title-${task.id}`}
           id="task-detail-title"
           className="detail-title"
           value={task.title}
-          onChange={e => update({ title: e.target.value })}
+          onCommit={v => updateTask(task.id, { title: v }, { coalesce: 'title' })}
+          rows={2}
           style={{
             background: 'none',
             border: 'none',
@@ -382,10 +388,11 @@ export const TaskDetail = ({ onClose }) => {
               dangerouslySetInnerHTML={{ __html: renderMarkdown(task.notes) || '<span style="color:var(--text-4);font-style:italic">No notes</span>' }}
             />
           ) : (
-            <textarea
+            <DraftText
+              key={`notes-${task.id}`}
               className="input-base"
               value={task.notes || ''}
-              onChange={e => update({ notes: e.target.value })}
+              onCommit={v => updateTask(task.id, { notes: v }, { coalesce: 'notes' })}
               placeholder="Add notes (markdown supported)…"
               style={{ minHeight: 100, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '.8rem' }}
               aria-labelledby="detail-notes-label"
@@ -469,20 +476,12 @@ export const TaskDetail = ({ onClose }) => {
         <button
           className="btn btn-danger w-full"
           data-feat="danger"
-          onClick={() => setShowConfirmDelete(true)}
-          aria-label="Delete task"
+          onClick={handleDelete}
         >
           <Trash2 size={14} /> Delete task
         </button>
       </div>
 
-      {showConfirmDelete && (
-        <ConfirmDelete
-          message={`Delete "${task.title}"? This cannot be undone.`}
-          onConfirm={handleDelete}
-          onCancel={() => setShowConfirmDelete(false)}
-        />
-      )}
     </aside>
   )
 }

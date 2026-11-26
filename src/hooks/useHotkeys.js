@@ -1,26 +1,32 @@
 // ── Global keyboard shortcut registry ─────────────────────
 import { useEffect } from 'react'
 
+const isLetter = (k) => k.length === 1 && k.toLowerCase() !== k.toUpperCase()
+
+// Does a keydown event match a shortcut definition?
+// Letters compare case-insensitively (Shift+Z reports "Z"); symbol keys
+// like "?" or "/" ignore Shift, since typing them may need it.
+export const matchesHotkey = (e, { key, ctrl = false, shift = false }) => {
+  const mod = e.ctrlKey || e.metaKey
+  if (ctrl !== mod) return false
+  if (isLetter(key)) return e.key.toLowerCase() === key.toLowerCase() && shift === e.shiftKey
+  if (key.length === 1) return e.key === key
+  return e.key === key && shift === e.shiftKey
+}
+
 export const useHotkeys = (handlers) => {
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.defaultPrevented) return
-      // Skip if typing in an input/textarea (unless explicitly handled)
-      const tag = document.activeElement?.tagName
-      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-        || document.activeElement?.contentEditable === 'true'
+      if (e.defaultPrevented || e.isComposing) return
+      const el = document.activeElement
+      const isInput = el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable
 
-      for (const { key, ctrl, shift, allowInInput, handler } of handlers) {
-        const matchCtrl  = ctrl  ? (e.ctrlKey || e.metaKey) : !(e.ctrlKey || e.metaKey)
-        const matchShift = shift ? e.shiftKey : !e.shiftKey
-        const matchKey   = e.key === key
-
-        if (matchCtrl && matchShift && matchKey) {
-          if (isInput && !allowInInput) continue
-          e.preventDefault()
-          handler(e)
-          return
-        }
+      for (const h of handlers) {
+        if (!matchesHotkey(e, h)) continue
+        if (isInput && !h.allowInInput) continue
+        e.preventDefault()
+        h.handler(e)
+        return
       }
     }
     window.addEventListener('keydown', onKeyDown)

@@ -24,6 +24,7 @@ import { ShortcutsHelp } from './components/Modals/ShortcutsHelp.jsx'
 import { ProjectEditor } from './components/Modals/ProjectEditor.jsx'
 import { TagEditor } from './components/Modals/TagEditor.jsx'
 import { Toaster } from './components/ui/Toaster.jsx'
+import { toast } from './toast.js'
 import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
 
 // ── Inner app (needs store context) ───────────────────────
@@ -81,8 +82,8 @@ const AppInner = () => {
     { key: '/',  ctrl: false, shift: false, handler: () => window.dispatchEvent(new CustomEvent('focus-search')) },
     { key: '?',  ctrl: false, shift: false, handler: () => setShowShortcuts(true) },
     { key: 'k',  ctrl: true,  shift: false, handler: () => setCommandPalette(true) },
-    { key: 'z',  ctrl: true,  shift: false, handler: () => undo() },
-    { key: 'z',  ctrl: true,  shift: true,  handler: () => redo() },
+    { key: 'z',  ctrl: true,  shift: false, handler: async () => toast(await undo() ? 'Undone.' : 'Nothing to undo.') },
+    { key: 'z',  ctrl: true,  shift: true,  handler: async () => toast(await redo() ? 'Redone.' : 'Nothing to redo.') },
     { key: 'Escape', ctrl: false, shift: false, allowInInput: true, handler: () => {
         if (state.detailOpen) { closeDetail(); return }
       }
@@ -92,7 +93,6 @@ const AppInner = () => {
     { key: '3', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'upcoming' }) },
     { key: '4', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'all' }) },
     { key: 'f', ctrl: false, shift: false, handler: () => setFocusMode(v => !v) },
-    { key: 'F', ctrl: false, shift: true,  handler: () => setFocusMode(v => !v) },
   ], [dispatch, undo, redo, state.detailOpen, closeDetail])
 
   useHotkeys(hotkeys)

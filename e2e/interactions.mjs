@@ -4,7 +4,7 @@ import { chromium } from 'playwright-core'
 const BASE = process.env.BASE_URL || 'http://localhost:4173'
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const browser = await chromium.launch({ executablePath: CHROME, headless: true })
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, acceptDownloads: true })
 const page = await ctx.newPage()
 const errors = []
 page.on('pageerror', e => errors.push(String(e)))
@@ -214,6 +214,87 @@ await check('restore with a bad file shows a plain warning toast (no alert)', as
   await page.waitForTimeout(200)
   assert(!dialogSeen, 'alert() was used')
   assert((await status.textContent()).includes('isn’t valid JSON'), 'toast: ' + await status.textContent())
+})
+
+// ── Data safety ──────────────────────────────────────────
+await check('two tabs stay in sync (BroadcastChannel)', async () => {
+  const other = await ctx.newPage()
+  await other.goto(BASE)
+  await other.getByRole('textbox', { name: 'Quick add task' }).waitFor()
+  await page.mouse.click(700, 700)
+  await quick.fill('Made in tab one'); await quick.press('Enter')
+  await other.locator('.task-title', { hasText: 'Made in tab one' }).waitFor({ timeout: 3000 })
+  await other.locator('.task-title', { hasText: 'Made in tab one' }).click({ button: 'right' })
+  await other.getByRole('menuitem', { name: /Delete/ }).click()
+  await page.locator('.task-title', { hasText: 'Made in tab one' }).waitFor({ state: 'detached', timeout: 3000 })
+  await other.close()
+})
+
+await check('detail title edits are one undo step; native undo works in the field', async () => {
+  await quick.fill('Original name'); await quick.press('Enter')
+  await page.locator('.task-title', { hasText: 'Original name' }).click()
+  const title = page.locator('#task-detail-title')
+  await title.click(); await page.keyboard.press('End')
+  await page.keyboard.type(' plus more words', { delay: 30 })
+  await page.evaluate(() => document.execCommand('undo'))
+  assert(await title.inputValue() !== 'Original name plus more words', 'native undo did nothing in the field')
+  await page.keyboard.type(' edited', { delay: 30 })
+  await page.waitForTimeout(800) // debounce commit
+  await page.getByRole('button', { name: 'Close details' }).click()
+  const edited = await page.locator('.task-title', { hasText: 'Original name' }).first().textContent()
+  assert(edited !== 'Original name', 'edit not saved: ' + edited)
+  await page.locator('.task-title', { hasText: 'Original name' }).first().focus()
+  await page.keyboard.press('Control+z')
+  await page.locator('.task-title', { hasText: /^Original name$/ }).waitFor({ timeout: 2000 })
+})
+
+await check('backup → restore → Undo round trip', async () => {
+  await page.mouse.click(700, 700)
+  const [dl] = await Promise.all([
+    page.waitForEvent('download'),
+    (async () => { await page.getByRole('button', { name: 'Download and restore' }).click(); await page.getByRole('menuitem', { name: /Download backup/ }).click() })(),
+  ])
+  const backup = JSON.parse(await (await import('node:fs/promises')).readFile(await dl.path(), 'utf8'))
+  assert(backup.format === 'todos-backup' && backup.tasks.length > 0, 'bad backup file')
+  assert(dl.suggestedFilename().startsWith('todos-backup-'), 'file name: ' + dl.suggestedFilename())
+  const before = await page.locator('.task-title').count()
+  const small = { ...backup, tasks: [{ id: 'only', title: 'Only restored task', tags: [], order: 1, createdAt: 1, updatedAt: 1 }] }
+  await page.setInputFiles('input[type=file]', { name: 'small.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(small)) })
+  await page.locator('.task-title', { hasText: 'Only restored task' }).waitFor({ timeout: 3000 })
+  assert(await page.locator('.task-title').count() === 1, 'restore did not replace data')
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await page.locator('.task-title', { hasText: 'Only restored task' }).waitFor({ state: 'detached', timeout: 3000 })
+  assert(await page.locator('.task-title').count() === before, 'undo did not bring data back')
+})
+
+await check('invalid backup explains the problem and changes nothing', async () => {
+  const before = await page.locator('.task-title').count()
+  await page.setInputFiles('input[type=file]', { name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ tasks: [{ id: 'a' }] })) })
+  await page.waitForTimeout(300)
+  assert((await page.getByRole('status').textContent()).includes('Task 1 is missing its title'), 'message: ' + await page.getByRole('status').textContent())
+  assert(await page.locator('.task-title').count() === before, 'data changed')
+})
+
+await check('deleting a project offers Undo and restores its tasks', async () => {
+  await page.getByRole('button', { name: 'Edit project Garden' }).click({ force: true })
+  await page.getByRole('button', { name: 'Delete project' }).click()
+  await page.waitForTimeout(200); assert((await page.getByRole('status').textContent()).includes('Deleted project “Garden”'), 'toast: ' + await page.getByRole('status').textContent() + ' | dialogs: ' + await page.getByRole('dialog').count())
+  assert(await page.getByRole('button', { name: /^Garden/ }).count() === 0, 'project still listed')
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: /^Garden/ }).first().waitFor({ timeout: 2000 })
+})
+
+await check('real-keyboard "?" (Shift+/) opens shortcuts; Ctrl+Shift+Z redoes', async () => {
+  await page.mouse.click(700, 700)
+  await page.keyboard.press('Shift+?')
+  await page.getByRole('dialog', { name: 'Keyboard shortcuts' }).waitFor({ timeout: 2000 })
+  await page.keyboard.press('Escape')
+  await quick.fill('Redo me'); await quick.press('Enter')
+  await page.mouse.click(700, 700)
+  await page.keyboard.press('Control+z')
+  await page.locator('.task-title', { hasText: 'Redo me' }).waitFor({ state: 'detached', timeout: 2000 })
+  await page.keyboard.press('Control+Shift+Z')
+  await page.locator('.task-title', { hasText: 'Redo me' }).waitFor({ timeout: 2000 })
 })
 
 // ── Phone width ──────────────────────────────────────────

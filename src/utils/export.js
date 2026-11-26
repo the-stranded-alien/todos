@@ -7,7 +7,7 @@ export const exportJSON = (data) => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `todos-export-${todayISO()}.json`
+  a.download = `todos-backup-${todayISO()}.json`
   a.click()
   URL.revokeObjectURL(url)
 }

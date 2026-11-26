@@ -1,12 +1,14 @@
 // ── Tag editor dialog ──────────────────────────────────────
 import { useState } from 'react'
 import { useStore } from '../../store/context.js'
+import { Trash2 } from '../../icons.jsx'
+import { toast } from '../../toast.js'
 import { SWATCHES, DEFAULT_SWATCH, tint, ink } from '../../utils/colors.js'
 import { Dialog } from '../ui/Dialog.jsx'
 import { ColorPicker } from './ColorPicker.jsx'
 
 export const TagEditor = ({ tag, onClose }) => {
-  const { createTag, updateTag } = useStore()
+  const { createTag, updateTag, deleteTag, undo } = useStore()
   const [name, setName] = useState(tag?.name || '')
   const [color, setColor] = useState(tag?.color || DEFAULT_SWATCH)
 
@@ -17,11 +19,25 @@ export const TagEditor = ({ tag, onClose }) => {
     onClose()
   }
 
+  const remove = async () => {
+    const n = await deleteTag(tag.id)
+    onClose()
+    toast({
+      message: n ? `Deleted tag “#${tag.name}” and removed it from ${n} task${n > 1 ? 's' : ''}.` : `Deleted tag “#${tag.name}”.`,
+      action: { label: 'Undo', onClick: undo },
+    })
+  }
+
   return (
     <Dialog
       title={tag ? 'Edit tag' : 'New tag'}
       onClose={onClose}
       footer={<>
+        {tag && (
+          <button className="btn btn-danger" style={{ marginRight: 'auto' }} data-feat="danger" onClick={remove}>
+            <Trash2 size={14} /> Delete tag
+          </button>
+        )}
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
         <button className="btn btn-primary" onClick={save} disabled={!name.trim()}>{tag ? 'Save' : 'Create'}</button>
       </>}

@@ -70,8 +70,12 @@ export const TaskRow = ({
   }, [task.completed, task.id, completeTask, uncompleteTask])
 
   const removeWithUndo = useCallback(async () => {
-    await deleteTask(task.id)
-    toast({ message: `Deleted “${task.title || 'Untitled'}”.`, action: { label: 'Undo', onClick: undo } })
+    const n = await deleteTask(task.id)
+    const title = task.title || 'Untitled'
+    toast({
+      message: n > 1 ? `Deleted “${title}” and ${n - 1} subtask${n > 2 ? 's' : ''}.` : `Deleted “${title}”.`,
+      action: { label: 'Undo', onClick: undo },
+    })
   }, [deleteTask, task.id, task.title, undo])
 
   const startRename = () => { setTitleVal(task.title); setEditingTitle(true) }

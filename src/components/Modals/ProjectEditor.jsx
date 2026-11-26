@@ -1,13 +1,14 @@
 // ── Project editor dialog ──────────────────────────────────
 import { useState } from 'react'
-import { Folder, PROJECT_ICONS as ICON_MAP, PROJECT_ICON_NAMES as ICONS } from '../../icons.jsx'
+import { Folder, Trash2, PROJECT_ICONS as ICON_MAP, PROJECT_ICON_NAMES as ICONS } from '../../icons.jsx'
+import { toast } from '../../toast.js'
 import { useStore } from '../../store/context.js'
 import { SWATCHES, DEFAULT_SWATCH, tint, ink } from '../../utils/colors.js'
 import { Dialog } from '../ui/Dialog.jsx'
 import { ColorPicker } from './ColorPicker.jsx'
 
 export const ProjectEditor = ({ project, onClose }) => {
-  const { createProject, updateProject } = useStore()
+  const { createProject, updateProject, deleteProject, undo } = useStore()
   const [name, setName] = useState(project?.name || '')
   const [color, setColor] = useState(project?.color || DEFAULT_SWATCH)
   const [icon, setIcon] = useState(project?.icon || 'Folder')
@@ -19,6 +20,15 @@ export const ProjectEditor = ({ project, onClose }) => {
     onClose()
   }
 
+  const remove = async () => {
+    const moved = await deleteProject(project.id)
+    onClose()
+    toast({
+      message: moved ? `Deleted project “${project.name}”. Its ${moved} task${moved > 1 ? 's' : ''} moved to the Inbox.` : `Deleted project “${project.name}”.`,
+      action: { label: 'Undo', onClick: undo },
+    })
+  }
+
   const IconComp = ICON_MAP[icon] || Folder
 
   return (
@@ -26,6 +36,11 @@ export const ProjectEditor = ({ project, onClose }) => {
       title={project ? 'Edit project' : 'New project'}
       onClose={onClose}
       footer={<>
+        {project && (
+          <button className="btn btn-danger" style={{ marginRight: 'auto' }} data-feat="danger" onClick={remove}>
+            <Trash2 size={14} /> Delete project
+          </button>
+        )}
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
         <button className="btn btn-primary" onClick={save} disabled={!name.trim()}>{project ? 'Save' : 'Create'}</button>
       </>}

@@ -109,15 +109,18 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - [x] `no-print` on chrome + a clean print style for task lists
 - **Notes:** The sweep now flags anything sticking out past the viewport or cut off by a clipping parent, plus overlapping header groups. Run first, that found what the baseline missed: list headers, calendar toolbar and stats cards running off-screen at 390px. After the change: **0 problems at 1280 / 1100 / 900 / 390** in light, dark, sepia+hc, neon-rainbow and dark+hc, including all open states (detail sheet, drawer, palette, dialogs, menus, focus mode). Narrow screens use a separate `drawerOpen` state (no resize effects); the desktop sidebar preference is untouched. On phones, opening a task moves focus to the sheet heading, not the title field, so the on-screen keyboard doesn't pop up. 4 new phone interaction checks; 22/22 pass. All animations ≤ 300ms (the only longer ones are the decorative timer/mic pulses, switched off under reduced motion). Also fixed: the sidebar toggle showed a permanent hover circle (the "expanded" style is now limited to menu triggers).
 
-### Batch 7 — Never lose data ⬜
-- [ ] Delete task → toast with **Undo** (no confirm dialog); deletes subtasks with the parent and restores them on undo (bug 4)
-- [ ] Project/tag delete → Undo restores the project/tag and every task reassignment
-- [ ] Uncomplete is undoable (bug 9)
-- [ ] Detail-panel title/notes edits: debounced commit (one history + one undo step per editing burst) (bug 3)
-- [ ] Bulk delete/complete/move → single Undo step for the whole batch
-- [ ] Backup = JSON with `format`/`version` manifest + settings; restore validates and says plainly what's wrong; automatic snapshot of current data before restore, with Undo
-- [ ] Cross-tab sync via `BroadcastChannel` (ignore own messages, echo suppression)
-- [ ] `navigator.storage.persist()` request + usage via `estimate()` (Settings → Storage)
+### Batch 7 — Never lose data ✅
+- [x] Delete task → toast with **Undo** (no confirm dialog); deletes subtasks with the parent and restores them on undo (bug 4)
+- [x] Project/tag delete (new: there was no way to delete them at all) → Undo restores the project/tag and every task reassignment
+- [x] Uncomplete is undoable (bug 9)
+- [x] Detail-panel title/notes edits: debounced commit (one history + one undo step per editing burst) (bug 3)
+- [x] Bulk delete/complete/move → single Undo step for the whole batch
+- [x] Backup = JSON with `format`/`version` manifest + settings; restore validates and says plainly what's wrong; automatic snapshot of current data before restore, with Undo
+- [x] Cross-tab sync via `BroadcastChannel` (ignore own messages, echo suppression)
+- [x] `navigator.storage.persist()` request + `estimate()` helpers, with a palette command and a plain explanation when refused; the Settings → Storage panel itself comes in Batch 8
+- **Notes:** The store now reads the current record from IndexedDB in every action, not from a render closure (stale-state bugs in bulk loops and debounced edits). Multi-step actions are one undo step (`grouped`); rapid edits to one field coalesce. DB schema v2 adds a `snapshots` store (upgrade-safe; keeps the last 5); restore saves "Before restoring a backup" first, and its toast offers Undo. Detail title/notes use `DraftText`: a local draft committed after 600ms idle or on blur, flushed on unmount, so native undo works inside the field. Cross-tab: every write announces on `BroadcastChannel`; other tabs reload from IndexedDB (own messages ignored, bursts collapsed). The confirm-before-delete dialog was removed: deletes are immediate with Undo, as the guidelines prefer.
+- **Pre-existing bugs fixed:** undoing *complete* on a recurring task left the auto-created next occurrence behind (duplicate); deleting a parent orphaned its subtasks (bug 4); uncomplete wasn't undoable (bug 9); **redo (Ctrl/⌘+Shift+Z) never worked** (Shift makes `e.key` uppercase); **`?` didn't open shortcuts on real keyboards** (it needs Shift). Undo/redo hotkeys now confirm with a toast.
+- **Verified:** 55 unit tests (+8 store data-safety tests, +11 backup validation, +5 hotkey matching). 28/28 real-Chrome interaction checks (+6: two-tab sync, title edits as one undo step with native in-field undo, backup → restore → Undo round trip with a real download, invalid backup changes nothing, project delete → Undo, real-keyboard `?` and redo). Axe/clipping sweep 0 at 1280 + 390; contrast audit 0.
 
 ### Batch 8 — Settings and Help ⬜
 - [ ] Settings dialog with side nav: Workspace (default view, week start), Appearance (theme picker with **live mini previews**, additional themes, high contrast, density, reduced motion), Features (voice input, timers, notifications, hide AI features), Storage (usage, persist, backup/restore, clear completed with Undo), About (privacy: "No server involved", version, links)
@@ -181,4 +184,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 3 — Icons | 2026-11-26 | `2487e04` | lint ✔ · 31 tests ✔ · build ✔ · JSX tag check ✔ · icon scan 0 in 5 themes |
 | 4 — Shared components | 2026-11-26 | `a43a2da` | lint ✔ · 31 tests ✔ · build ✔ · 13/13 interaction checks ✔ · only Batch-5 axe items left |
 | 5 — Accessibility | 2026-11-26 | `d9e6e97` | lint ✔ · 31 tests ✔ · build ✔ · 18/18 interactions ✔ · axe 0 in 28 variants × 15 views/states |
-| 6 — Layout & responsive | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · 22/22 interactions ✔ · 0 problems at 4 widths |
+| 6 — Layout & responsive | 2026-11-26 | `4c2aa9d` | lint ✔ · 31 tests ✔ · build ✔ · 22/22 interactions ✔ · 0 problems at 4 widths |
+| 7 — Never lose data | 2026-11-26 | _see git log_ | lint ✔ · 55 tests ✔ · build ✔ · 28/28 interactions ✔ · axe 0 |
