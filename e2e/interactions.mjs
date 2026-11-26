@@ -455,6 +455,40 @@ await check('smart lists: save filters as a list, rules apply, sort is per list,
   await page.getByRole('button', { name: /^Top priority/ }).waitFor()
 })
 
+// ── Pomodoro (fake clock) ────────────────────────────────
+await check('pomodoro: P starts focus, session ends into a break, break ends, Stats counts it', async () => {
+  const pc = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  const p = await pc.newPage()
+  await p.clock.install({ time: new Date(2026, 10, 26, 10, 0) })
+  await p.addInitScript(() => localStorage.setItem('todos-prefs', JSON.stringify({ pomoWork: 1, pomoShort: 1, pomoLong: 2, pomoLongEvery: 2, pomoSound: false })))
+  await p.goto(BASE)
+  const q = p.getByRole('textbox', { name: 'Quick add task' })
+  await q.waitFor(); await q.fill('Write the report p3'); await q.press('Enter')
+  await p.mouse.click(700, 700); await p.keyboard.press('f')
+  const pomo = p.getByRole('region', { name: 'Pomodoro timer' })
+  await pomo.waitFor()
+  assert((await pomo.getByRole('timer').textContent()) === '01:00', 'start clock')
+  await p.keyboard.press('p')
+  await pomo.getByRole('button', { name: 'Pause' }).waitFor()
+  await p.clock.runFor(30000)
+  assert((await pomo.getByRole('timer').textContent()) === '00:30', 'after 30s: ' + await pomo.getByRole('timer').textContent())
+  await p.clock.runFor(31000)
+  await pomo.locator('.pomo-phase', { hasText: 'Short break' }).waitFor()
+  assert((await p.getByRole('status').textContent()).includes('Focus session done'), 'toast: ' + await p.getByRole('status').textContent())
+  await pomo.getByRole('button', { name: 'Pause' }).waitFor() // break runs on its own
+  await p.clock.runFor(61000)
+  await pomo.locator('.pomo-phase', { hasText: 'Focus' }).waitFor()
+  await pomo.getByRole('button', { name: 'Start focus' }).waitFor()
+  await p.keyboard.press('Escape')
+  const tracked = await p.evaluate(() => new Promise(r => { const q = indexedDB.open('todos-db'); q.onsuccess = () => { const g = q.result.transaction('tasks').objectStore('tasks').getAll(); g.onsuccess = () => r(g.result.map(t => ({ s: (t.pomodoros || []).length, ms: t.timeTracked, running: t.timerStartedAt }))) } }))
+  assert(tracked[0].s === 1 && tracked[0].ms >= 59000 && tracked[0].running == null, 'task record: ' + JSON.stringify(tracked))
+  await p.evaluate(() => window.dispatchEvent(new CustomEvent('todos:set-view', { detail: 'stats' })))
+  await p.getByText(/Focus sessions this week/).waitFor()
+  const tile = await p.getByText(/Focus sessions this week/).locator('..').textContent()
+  assert(tile.startsWith('1'), 'stats tile: ' + tile)
+  await pc.close()
+})
+
 // ── On-device AI ─────────────────────────────────────────
 await check('suggest subtasks without built-in AI: notice, quick version, one undo step', async () => {
   await page.mouse.click(700, 700)

@@ -231,10 +231,13 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 - [ ] Optional time-blocks: drag tasks onto a simple day timeline; end-of-day "roll over unfinished" with Undo
 - [ ] Uses tracked time from timers to show estimate vs actual in Stats
 
-### 8. Pomodoro in focus mode ⬜ (S)
-- [ ] 25/5 (configurable) work/break cycles in focus mode, tied to the task timer
-- [ ] Gentle sound + notification at the end of each cycle (respects reduce motion and a mute switch)
-- [ ] Session count and focus minutes in Stats; screen stays awake (wake lock already there)
+### 8. Pomodoro in focus mode ✅ (Batch 15) (S)
+- [x] 25/5 (configurable) work/break cycles in focus mode, tied to the task timer
+- [x] Gentle sound + notification at the end of each cycle (respects reduce motion and a mute switch)
+- [x] Session count and focus minutes in Stats; screen stays awake (wake lock already there)
+- **Notes:** `Pomodoro.jsx` counts down from an end timestamp, so a throttled background tab stays accurate. Focus phases start and stop the task's own timer; breaks start on their own, and the next focus waits for Start. **P** toggles; the timer has `role="timer"`; phase changes are announced politely. Sessions are stored on the task as `pomodoros: [{ at, minutes }]` (capped at 200), so they're in backups and sync, and Stats has a "Focus sessions this week" tile (sessions on trashed tasks still count). Settings → Features: on/off, focus / short / long lengths, long break every N, sound. The chime is a soft two-note Web Audio tone; a notification shows only when the tab is hidden and notifications are already allowed.
+- **Bugs found while testing and fixed:** (1) a race at the end of a focus phase: "stop timer" and "record session" both rewrote the task, so the timer stayed running; they now run in order. (2) QuickAdd's delayed refocus could put focus *behind* an open modal (e.g. focus mode); it now never refocuses while a modal is open.
+- **Verified:** 3 unit tests. A browser check on Playwright's fake clock: P → 30s → "00:30" → session ends → toast + Short break running → break ends → "Start focus"; the task shows 1 session, about 60s tracked and no timer running; Stats tile shows 1. Axe 0 with focus mode + timer at 1280 and 390. Screenshot reviewed.
 
 ### 9. Share a list by link; Markdown / todo.txt ⬜ (M)
 - [ ] **Share link**: a project or selection compressed into the URL fragment (no server; nothing leaves the device until the user sends the link). Opening it shows a read-only preview with "Add to my tasks"
@@ -290,3 +293,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 12 — Trash & history | 2026-11-26 | _see git log_ | lint ✔ · 69 tests ✔ · build ✔ · 36 interactions ✔ · walk-through ✔ · PWA ✔ · axe 0 |
 | 13 — Smart lists | 2026-11-26 | _see git log_ | lint ✔ · 76 tests ✔ · build ✔ · 37 interactions ✔ · walk-through ✔ · axe 0 |
 | 14 — Flexible repeats | 2026-11-26 | _see git log_ | lint ✔ · 97 tests ✔ · build ✔ · interactions ✔ · 22-step walk-through ✔ · axe 0 |
+| 15 — Pomodoro | 2026-11-26 | _see git log_ | lint ✔ · 100 tests ✔ · build ✔ · interactions ✔ (fake clock) · walk-through ✔ · axe 0 |

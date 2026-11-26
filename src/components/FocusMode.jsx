@@ -4,9 +4,12 @@ import { useDialogKeys } from '../hooks/useDialogKeys.js'
 import { X, CheckCircle2 } from '../icons.jsx'
 import { toast } from '../toast.js'
 import { useStore } from '../store/context.js'
+import { usePrefs } from '../prefs.js'
+import { Pomodoro } from './Pomodoro.jsx'
 
 export const FocusMode = ({ onClose }) => {
   const { state, completeTask } = useStore()
+  const prefs = usePrefs()
 
   const firstTask = useMemo(() =>
     state.tasks
@@ -85,7 +88,7 @@ export const FocusMode = ({ onClose }) => {
       </div>
 
       {firstTask ? (
-        <div className="anim-fade-in flex flex-col items-center gap-8 max-w-2xl w-full px-8">
+        <div className="anim-fade-in flex flex-col items-center gap-6 max-w-2xl w-full px-8 overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 80px)', paddingTop: 16, paddingBottom: 16 }}>
           <div aria-live="polite" style={{ color: 'var(--text-3)', fontSize: '.875rem' }}>
             {remaining} task{remaining !== 1 ? 's' : ''} remaining
           </div>
@@ -102,6 +105,8 @@ export const FocusMode = ({ onClose }) => {
             </p>
           )}
 
+          {prefs.pomodoro && <Pomodoro task={firstTask} />}
+
           <button
             ref={doneRef}
             type="button"
@@ -114,7 +119,7 @@ export const FocusMode = ({ onClose }) => {
           </button>
 
           <p style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>
-            Press <kbd className="kbd">Esc</kbd> to exit
+            {prefs.pomodoro && <>Press <kbd className="kbd">P</kbd> to start or pause the timer · </>}Press <kbd className="kbd">Esc</kbd> to exit
           </p>
         </div>
       ) : (

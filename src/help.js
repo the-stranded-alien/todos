@@ -49,6 +49,7 @@ export const HELP_SECTIONS = [
     body: [
       'Start a timer from a task row or its details; only one runs at a time and it keeps running if you close the app.',
       'Focus mode (press F) shows one task at a time, most important first. Press Done to move on, Esc to leave.',
+      'Pomodoro: focus mode shows a 25-minute focus / 5-minute break timer (a long break every 4th). Press Start focus or P. Focus time runs the task’s timer; finished sessions are counted in Stats. Change the lengths or turn the sound off in Settings → Features.',
       'Turn timers off in Settings → Features.',
     ],
   },

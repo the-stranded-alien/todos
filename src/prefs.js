@@ -19,6 +19,12 @@ export const DEFAULT_PREFS = {
   timers: true,
   reminders: false,
   hideAI: false,
+  pomodoro: true,
+  pomoWork: 25,
+  pomoShort: 5,
+  pomoLong: 15,
+  pomoLongEvery: 4,
+  pomoSound: true,
 }
 
 export const prefersReducedMotion = () => {

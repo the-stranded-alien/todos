@@ -7,6 +7,7 @@ import { useReducer, useCallback, useRef, useEffect } from 'react'
 import { StoreContext } from './store/context.js'
 import { todayISO } from './utils/dates.js'
 import { nextOccurrence } from './utils/recurrence.js'
+import { addSession } from './utils/pomodoro.js'
 import { DEFAULT_SWATCH } from './utils/colors.js'
 import { nanoid } from './utils/nanoid.js'
 import { onRemoteChange } from './sync.js'
@@ -446,7 +447,13 @@ export const StoreProvider = ({ children }) => {
     pushUndo(() => writeTasks(prev), () => writeTasks(next))
   }, [pushUndo, writeTasks])
 
-  // ── Timers (not part of undo) ────────────────────────────
+  // ── Timers and focus sessions (not part of undo) ─────────
+
+  const recordPomodoro = useCallback(async (id, minutes, at = Date.now()) => {
+    const task = await db.getTask(id)
+    if (!task) return
+    await writeTasks([{ ...task, pomodoros: addSession(task.pomodoros, at, minutes), updatedAt: at }])
+  }, [writeTasks])
 
   const stopTimer = useCallback(async (id) => {
     const task = await db.getTask(id)
@@ -609,7 +616,7 @@ export const StoreProvider = ({ children }) => {
     state,
     dispatch,
     createTask, updateTask, completeTask, uncompleteTask, deleteTask, reorderTasks, skipOccurrence,
-    startTimer, stopTimer,
+    startTimer, stopTimer, recordPomodoro,
     createProject, updateProject, deleteProject,
     createTag, updateTag, deleteTag,
     bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,

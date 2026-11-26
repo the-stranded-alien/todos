@@ -943,3 +943,20 @@ mark { background: var(--accent-soft); color: var(--text-1); box-shadow: inset 0
 .weekday-picker button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .repeat-summary { margin: 6px 0 0; font-size: .78rem; color: var(--text-2); }
 .repeat-skip { font-size: .75rem; padding: 3px 8px; margin-top: 4px; }
+
+/* ── Pomodoro ─────────────────────────────────────────────── */
+.pomo { --pomo-color: var(--accent); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pomo[data-phase="short"], .pomo[data-phase="long"] { --pomo-color: var(--success); }
+.pomo-ring { position: relative; width: 132px; height: 132px; }
+.pomo-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pomo-phase { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.pomo-clock { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1.7rem; font-weight: 700; color: var(--text-1); }
+.pomo-dots { display: flex; gap: 6px; }
+.pomo-dots span { width: 9px; height: 9px; border-radius: 99px; border: 2px solid var(--pomo-color); }
+.pomo-dots span[data-on] { background: var(--pomo-color); }
+.pomo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.pomo-actions .btn { font-size: .85rem; }
+
+.pomo-settings { padding: 4px 0 4px 12px; border-left: 2px solid var(--border-light); margin-bottom: 6px; }
+.pomo-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .84rem; color: var(--text-1); }
+.pomo-field input { width: 72px; }

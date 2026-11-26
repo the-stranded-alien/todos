@@ -72,7 +72,8 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
       order: Date.now(),
     })
     const now = document.activeElement
-    if (now === focusedAtSubmit || now === document.body) inputRef?.current?.focus()
+    const modalOpen = !!document.querySelector('[aria-modal="true"]')
+    if (!modalOpen && (now === focusedAtSubmit || now === document.body)) inputRef?.current?.focus()
   }, [value, defaultProjectId, defaultDueDate, state.projects, state.tags, createTask, inputRef])
 
   const handleKeyDown = useCallback((e) => {

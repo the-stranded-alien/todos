@@ -125,6 +125,22 @@ const Features = ({ prefs }) => {
         disabled={!notifySupported}
         onChange={toggleReminders}
       />
+      <Switch label="Pomodoro timer" description="Focus/break cycles in focus mode, recorded on the task and shown in Stats." checked={prefs.pomodoro} onChange={v => setPrefs({ pomodoro: v })} />
+      {prefs.pomodoro && (
+        <div className="pomo-settings">
+          {[['pomoWork', 'Focus', 1, 120], ['pomoShort', 'Short break', 1, 60], ['pomoLong', 'Long break', 1, 90], ['pomoLongEvery', 'Long break every', 2, 10]].map(([k, label, min, max]) => (
+            <label key={k} className="pomo-field">
+              <span>{label}</span>
+              <span className="flex items-center gap-1">
+                <input type="number" className="input-base" min={min} max={max} value={prefs[k]}
+                  onChange={e => setPrefs({ [k]: Math.max(min, Math.min(max, Number(e.target.value) || min)) })} />
+                <span className="switch-desc">{k === 'pomoLongEvery' ? 'sessions' : 'min'}</span>
+              </span>
+            </label>
+          ))}
+          <Switch label="Sound at the end of each phase" checked={prefs.pomoSound} onChange={v => setPrefs({ pomoSound: v })} />
+        </div>
+      )}
       <Switch
         label="Hide AI features"
         description="Removes “Suggest subtasks”. When shown, it runs on your device with Chrome’s built-in AI and nothing is sent anywhere."

@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/context.js'
 import { usePrefs } from '../prefs.js'
+import { sessionsSince } from '../utils/pomodoro.js'
 
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
@@ -59,7 +60,14 @@ export const StatsPanel = () => {
     return { completedByDay, completionRate, streak, timeThisWeek, maxDay: DAY_NAMES[maxIdx], maxCount, completedThisWeek: completedThisWeek.length }
   }, [tasks, now, firstWeekday])
 
-  const formatTime = (ms) => {
+  const focus = useMemo(() => {
+    const start = new Date(now)
+    start.setDate(start.getDate() - ((start.getDay() - firstWeekday + 7) % 7))
+    start.setHours(0, 0, 0, 0)
+    return sessionsSince([...tasks, ...state.trash.map(e => e.task)], start.getTime())
+  }, [tasks, state.trash, now, firstWeekday])
+
+  function formatTime(ms) {
     const h = Math.floor(ms / 3600000)
     const m = Math.floor((ms % 3600000) / 60000)
     if (h > 0) return `${h}h ${m}m`
@@ -109,6 +117,12 @@ export const StatsPanel = () => {
         <div className="rounded-2xl p-4 flex flex-col items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ color: 'var(--accent)', fontSize: '2rem', fontWeight: 700 }}>{stats.completedThisWeek}</div>
           <span style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>Completed this week</span>
+        </div>
+
+        {/* Focus sessions */}
+        <div className="rounded-2xl p-4 flex flex-col items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ color: 'var(--success)', fontSize: '2rem', fontWeight: 700 }}>{focus.count}</div>
+          <span style={{ color: 'var(--text-3)', fontSize: '.8rem', textAlign: 'center' }}>Focus sessions this week{focus.minutes ? ` (${formatTime(focus.minutes * 60000)})` : ''}</span>
         </div>
 
         {/* Time tracked */}
