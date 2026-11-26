@@ -25,6 +25,12 @@ const PRIORITY_OPTIONS = [
 
 const FREQ_OPTIONS = ['none','daily','weekly','monthly']
 
+const FIELD_NAMES = {
+  title: 'name', notes: 'notes', priority: 'priority', dueDate: 'due date', dueTime: 'due time',
+  projectId: 'project', tags: 'tags', recurring: 'repeat', parentId: 'parent', status: 'status', estimate: 'estimate',
+}
+const ACTION_NAMES = { created: 'Created', completed: 'Completed', reopened: 'Reopened', deleted: 'Deleted', updated: 'Edited' }
+
 const formatDuration = (ms) => {
   if (!ms) return '0m'
   const h = Math.floor(ms / 3600000)
@@ -36,11 +42,13 @@ const formatDuration = (ms) => {
 }
 
 export const TaskDetail = ({ onClose }) => {
-  const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask, undo } = useStore()
+  const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask, undo, restoreVersion } = useStore()
   const task = state.tasks.find(t => t.id === state.selectedTaskId)
 
   const [showPreview, setShowPreview] = useState(false)
   const [history, setHistory] = useState([])
+  const [historyCount, setHistoryCount] = useState(0)
+  const [showAllHistory, setShowAllHistory] = useState(false)
   const [newSubtask, setNewSubtask] = useState('')
   const [tagSearch, setTagSearch] = useState('')
   const [showTagDropdown, setShowTagDropdown] = useState(false)
@@ -55,10 +63,13 @@ export const TaskDetail = ({ onClose }) => {
     if (!taskId) return
     let alive = true
     getTaskHistory(taskId).then(h => {
-      if (alive) setHistory(h.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10))
+      if (!alive) return
+      const sorted = h.sort((a, b) => b.timestamp - a.timestamp)
+      setHistoryCount(sorted.length)
+      setHistory(showAllHistory ? sorted : sorted.slice(0, 8))
     })
     return () => { alive = false }
-  }, [taskId, taskUpdatedAt])
+  }, [taskId, taskUpdatedAt, showAllHistory])
 
   const subtasks = useMemo(() =>
     task ? state.tasks.filter(t => t.parentId === task.id) : []
@@ -75,7 +86,7 @@ export const TaskDetail = ({ onClose }) => {
     const n = await deleteTask(task.id)
     onClose()
     toast({
-      message: n > 1 ? `Deleted “${title}” and ${n - 1} subtask${n > 2 ? 's' : ''}.` : `Deleted “${title}”.`,
+      message: n > 1 ? `Moved “${title}” and ${n - 1} subtask${n > 2 ? 's' : ''} to the trash.` : `Moved “${title}” to the trash.`,
       action: { label: 'Undo', onClick: undo },
     })
   }, [task, deleteTask, onClose, undo])
@@ -433,7 +444,7 @@ export const TaskDetail = ({ onClose }) => {
                   tooltipAlign="end"
                   onClick={() => {
                     deleteTask(sub.id)
-                    toast({ message: `Deleted subtask “${sub.title}”.`, action: { label: 'Undo', onClick: undo } })
+                    toast({ message: `Moved subtask “${sub.title}” to the trash.`, action: { label: 'Undo', onClick: undo } })
                   }}
                 />
               </div>
@@ -451,23 +462,45 @@ export const TaskDetail = ({ onClose }) => {
           {!prefs.hideAI && !task.parentId && <SuggestSubtasks key={task.id} task={task} />}
         </div>
 
-        {/* Activity */}
+        {/* Activity and version history */}
         {history.length > 0 && (
           <div>
-            <h3 className="detail-label" id="detail-activity">Activity</h3>
-            <div className="mt-1 space-y-1">
-              {history.map(h => (
-                <div key={h.id} className="flex items-start gap-2" style={{ fontSize: '.75rem', color: 'var(--text-4)' }}>
-                  <span style={{ flexShrink: 0 }}>
-                    {h.action === 'created' ? '✦' : h.action === 'completed' ? '✓' : h.action === 'deleted' ? '✕' : '✎'}
-                  </span>
-                  <span style={{ flex: 1 }}>
-                    {h.action.charAt(0).toUpperCase() + h.action.slice(1)}
-                  </span>
-                  <span>{new Date(h.timestamp).toLocaleDateString()}</span>
-                </div>
-              ))}
-            </div>
+            <h3 className="detail-label" id="detail-activity">History</h3>
+            <ul className="history-list" aria-labelledby="detail-activity">
+              {history.map(h => {
+                const restorable = h.action === 'updated' && h.diff?.before && h.diff?.after && !('id' in h.diff.after)
+                const fields = restorable ? Object.keys(h.diff.before).map(k => FIELD_NAMES[k] ?? k) : []
+                const label = restorable ? `Changed ${fields.join(', ')}` : ACTION_NAMES[h.action] ?? h.action
+                return (
+                  <li key={h.id}>
+                    <span aria-hidden="true" className="history-mark">{h.action === 'created' ? '✦' : h.action === 'completed' ? '✓' : h.action === 'deleted' ? '✕' : '✎'}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="history-what">{label}</span>
+                      <span className="history-when">{new Date(h.timestamp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                    </span>
+                    {restorable && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost history-restore"
+                        aria-label={`Restore ${fields.join(', ')} from before ${new Date(h.timestamp).toLocaleString()}`}
+                        data-tooltip={`Put back the ${fields.join(', ')} from before this change`}
+                        onClick={async () => {
+                          await restoreVersion(task.id, h.diff.before)
+                          toast({ message: `Restored the earlier ${fields.join(', ')}.`, tone: 'success', action: { label: 'Undo', onClick: undo } })
+                        }}
+                      >
+                        Restore
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+            {historyCount > history.length && (
+              <button type="button" className="btn btn-ghost" style={{ fontSize: '.75rem', padding: '3px 8px' }} onClick={() => setShowAllHistory(true)}>
+                Show all {historyCount}
+              </button>
+            )}
           </div>
         )}
 

@@ -18,6 +18,7 @@ const initialState = {
   tasks: [],
   projects: [],
   tags: [],
+  trash: [],             // [{ id, task, deletedAt, batch }]
   loading: true,
   view: 'inbox',         // inbox|today|upcoming|all|completed|calendar|stats|project:id|tag:id
   selectedTaskId: null,
@@ -50,14 +51,14 @@ const reducer = (state, action) => {
 
     // Data replaced from IndexedDB (restore, another tab): keep UI state valid
     case 'SYNC': {
-      const { tasks, projects, tags } = action
+      const { tasks, projects, tags, trash = state.trash } = action
       const ids = new Set(tasks.map(t => t.id))
       const selectedGone = state.selectedTaskId && !ids.has(state.selectedTaskId)
       const viewGone = (state.view.startsWith('project:') && !projects.some(p => `project:${p.id}` === state.view))
         || (state.view.startsWith('tag:') && !tags.some(t => `tag:${t.id}` === state.view))
       return {
         ...state,
-        tasks, projects, tags,
+        tasks, projects, tags, trash,
         activeTimerTaskId: tasks.find(t => t.timerStartedAt != null)?.id ?? null,
         selectedTaskId: selectedGone ? null : state.selectedTaskId,
         detailOpen: selectedGone ? false : state.detailOpen,
@@ -81,6 +82,7 @@ const reducer = (state, action) => {
       }
     }
     case 'SET_TASKS': return { ...state, tasks: action.tasks }
+    case 'SET_TRASH': return { ...state, trash: action.trash }
 
     case 'UPSERT_PROJECT': return { ...state, projects: upsert(state.projects, [action.project]) }
     case 'REMOVE_PROJECT': return {
@@ -162,18 +164,19 @@ export const StoreProvider = ({ children }) => {
   const group = useRef(null)
 
   const reloadAll = useCallback(async () => {
-    const [tasks, projects, tags] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags()])
-    dispatch({ type: 'SYNC', tasks, projects, tags })
+    const [tasks, projects, tags, trash] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags(), db.getTrash()])
+    dispatch({ type: 'SYNC', tasks, projects, tags, trash })
   }, [])
 
   // Load on mount
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const [tasks, projects, tags] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags()])
+      await db.purgeTrash()
+      const [tasks, projects, tags, trash] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags(), db.getTrash()])
       if (!alive) return
       const activeTimer = tasks.find(t => t.timerStartedAt != null)
-      dispatch({ type: 'LOAD', payload: { tasks, projects, tags, activeTimerTaskId: activeTimer?.id ?? null } })
+      dispatch({ type: 'LOAD', payload: { tasks, projects, tags, trash, activeTimerTaskId: activeTimer?.id ?? null } })
     })()
     return () => { alive = false }
   }, [])
@@ -329,18 +332,67 @@ export const StoreProvider = ({ children }) => {
     pushUndo(() => writeTasks([task]), () => writeTasks([next]))
   }, [pushUndo, writeTasks])
 
-  // Deletes the task and all of its subtasks; undo brings them all back
+  const refreshTrash = useCallback(async () => dispatch({ type: 'SET_TRASH', trash: await db.getTrash() }), [])
+
+  // Moves the task and all of its subtasks to the trash (one batch);
+  // undo brings them all back
   const deleteTask = useCallback(async (id) => {
     const all = await db.getTasks()
     const doomed = withDescendants(all, id)
     if (!doomed.length) return 0
     const ids = doomed.map(t => t.id)
     if (doomed.some(t => t.timerStartedAt != null)) dispatch({ type: 'SET_ACTIVE_TIMER', taskId: null })
-    await removeTasks(ids)
+    const stopped = doomed.map(t => (t.timerStartedAt != null ? { ...t, timeTracked: (t.timeTracked || 0) + (Date.now() - t.timerStartedAt), timerStartedAt: null } : t))
+    const batch = nanoid(8)
+    await db.trashTasks(stopped, batch)
+    dispatch({ type: 'REMOVE_TASKS', ids })
+    await refreshTrash()
     await history(id, 'deleted', { before: doomed[0], subtasks: ids.length - 1 })
-    pushUndo(() => writeTasks(doomed), () => removeTasks(ids))
+    pushUndo(
+      async () => { await db.untrashTasks(doomed); dispatch({ type: 'UPSERT_TASKS', tasks: doomed }); await refreshTrash() },
+      async () => { await db.trashTasks(stopped, batch); dispatch({ type: 'REMOVE_TASKS', ids }); await refreshTrash() },
+    )
     return ids.length
-  }, [pushUndo, writeTasks, removeTasks])
+  }, [pushUndo, refreshTrash])
+
+  // Restore a trashed task with everything deleted alongside it
+  const restoreFromTrash = useCallback(async (entryId) => {
+    const all = await db.getTrash()
+    const entry = all.find(e => e.id === entryId)
+    if (!entry) return 0
+    const group = all.filter(e => e.batch && e.batch === entry.batch)
+    const entries = group.length ? group : [entry]
+    const live = new Set((await db.getTasks()).map(t => t.id))
+    const ids = new Set(entries.map(e => e.id))
+    // A subtask whose parent is gone for good comes back as a top-level task
+    const tasks = entries.map(e => (e.task.parentId && !live.has(e.task.parentId) && !ids.has(e.task.parentId) ? { ...e.task, parentId: null } : e.task))
+    await db.untrashTasks(tasks)
+    dispatch({ type: 'UPSERT_TASKS', tasks })
+    await refreshTrash()
+    pushUndo(
+      async () => { await db.trashTasks(tasks, entry.batch, entry.deletedAt); dispatch({ type: 'REMOVE_TASKS', ids: [...ids] }); await refreshTrash() },
+      async () => { await db.untrashTasks(tasks); dispatch({ type: 'UPSERT_TASKS', tasks }); await refreshTrash() },
+    )
+    return tasks.length
+  }, [pushUndo, refreshTrash])
+
+  // Delete for good (entries can still be put back with Undo this session)
+  const deletePermanently = useCallback(async (entryIds) => {
+    const entries = (await db.getTrash()).filter(e => entryIds.includes(e.id))
+    if (!entries.length) return 0
+    await db.deleteFromTrash(entries.map(e => e.id))
+    await refreshTrash()
+    pushUndo(
+      async () => { await db.putTrash(entries); await refreshTrash() },
+      async () => { await db.deleteFromTrash(entries.map(e => e.id)); await refreshTrash() },
+    )
+    return entries.length
+  }, [pushUndo, refreshTrash])
+
+  const emptyTrash = useCallback(async () => deletePermanently((await db.getTrash()).map(e => e.id)), [deletePermanently])
+
+  // Restore a task's fields to how they were before a recorded change
+  const restoreVersion = useCallback(async (taskId, fields) => updateTask(taskId, fields), [updateTask])
 
   const reorderTasks = useCallback(async (orderedIds) => {
     const all = await db.getTasks()
@@ -517,6 +569,7 @@ export const StoreProvider = ({ children }) => {
     createProject, updateProject, deleteProject,
     createTag, updateTag, deleteTag,
     bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,
+    restoreFromTrash, deletePermanently, emptyTrash, restoreVersion,
     undo, redo,
     importData, reloadAll,
   }

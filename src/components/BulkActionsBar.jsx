@@ -46,7 +46,7 @@ export const BulkActionsBar = () => {
 
       <div aria-hidden="true" style={{ width: 1, height: 20, background: 'var(--border)' }} />
 
-      <IconButton label="Delete selected" icon={Trash2} onClick={async () => done(`Deleted ${plural(await bulkDelete())}.`)} danger data-feat="danger" />
+      <IconButton label="Delete selected" icon={Trash2} onClick={async () => done(`Moved ${plural(await bulkDelete())} to the trash.`)} danger data-feat="danger" />
       <IconButton label="Clear selection" icon={X} onClick={() => dispatch({ type: 'CLEAR_BULK' })} tooltipAlign="end" />
     </div>
   )

@@ -75,7 +75,7 @@ export const TaskRow = ({
     const n = await deleteTask(task.id)
     const title = task.title || 'Untitled'
     toast({
-      message: n > 1 ? `Deleted “${title}” and ${n - 1} subtask${n > 2 ? 's' : ''}.` : `Deleted “${title}”.`,
+      message: n > 1 ? `Moved “${title}” and ${n - 1} subtask${n > 2 ? 's' : ''} to the trash.` : `Moved “${title}” to the trash.`,
       action: { label: 'Undo', onClick: undo },
     })
   }, [deleteTask, task.id, task.title, undo])

@@ -54,7 +54,8 @@ export const HELP_SECTIONS = [
     id: 'undo', title: 'Undo and safety',
     body: [
       'Every change can be undone: press Ctrl/⌘+Z (outside text fields) or use Undo in the message at the bottom. Ctrl/⌘+Shift+Z redoes.',
-      'Deleting never asks first; it shows Undo instead.',
+      'Deleting never asks first; it shows Undo instead, and the task goes to the Trash for 30 days. Restore it from Trash in the sidebar.',
+      'A task’s History (in its details) lists every change. Restore puts back the earlier name, notes, date or other fields.',
       'Restoring a backup saves a copy of your current data first. Find saved copies in Settings → Storage.',
     ],
   },

@@ -180,11 +180,13 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 | 9 | Share a list by link; Markdown / todo.txt import-export | Collaboration and portability without a server | M |
 | 10 | On-device AI: smart quick-add and weekly review | Extends the Batch 10 AI with real daily value | M |
 
-### 1. Trash and task history ⬜ (S)
-- [ ] Deleted tasks go to **Trash** (kept 30 days; Restore / Delete permanently… with confirm + Undo), not straight out of IndexedDB
-- [ ] Per-task **version history**: field-level snapshots already logged in `history`; show "Restore this version" in the Activity section
-- [ ] Trash and history included in backups; "Empty trash" in Settings → Storage
+### 1. Trash and task history ✅ (Batch 12) (S)
+- [x] Deleted tasks go to **Trash** (kept 30 days; Restore / Delete permanently… with confirm + Undo), not straight out of IndexedDB
+- [x] Per-task **version history**: field-level snapshots already logged in `history`; show "Restore this version" in the Activity section
+- [x] Trash and history included in backups; "Empty trash" in Settings → Storage
 - Guidelines: §1 never lose data, §9 version history before risky operations
+- **Notes:** DB schema v3 adds a `trash` store (upgrade-safe). Deleting moves the task and its subtasks into the trash as one *batch*, so restoring brings the whole group back; a subtask whose parent was deleted for good comes back as a top-level task. Running timers are stopped (time kept) when trashed. Trash view in the sidebar with count, "N days left", Restore, and "Delete permanently…" / "Empty trash…" behind a confirm dialog (Cancel focused first) that still offer Undo. Entries older than 30 days are purged on start. History (renamed from Activity) labels each edit ("Changed name, notes") with **Restore** for the earlier values; entries in the original v1 format aren't restorable and are shown as plain events. Trash is included in backups and validated on restore. Clear completed now moves tasks to the trash.
+- **Verified:** 5 new store tests (cascade into trash and restore, orphaned subtask, permanent delete/empty with Undo, 30-day purge, version restore). 2 new browser checks (delete → Trash → Restore; Delete permanently confirm + Undo; History Restore puts back the old name). Axe sweep now includes the Trash view: 0 problems at 1280 and 390 in light and dark+hc.
 
 ### 2. Sync across devices through a folder ⬜ (L)
 - [ ] Settings → Storage → **Sync to a folder** (`showDirectoryPicker`): one JSON file per task + a manifest, so a Dropbox/iCloud/OneDrive/Syncthing folder carries data between devices with no server
@@ -281,3 +283,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 9 — PWA & platform | 2026-11-26 | `571f7b3` | lint ✔ · 55 tests ✔ · build ✔ · 6/6 PWA checks ✔ · 32/32 interactions ✔ · axe 0 |
 | 10 — On-device AI | 2026-11-26 | `ef78176` | lint ✔ · 63 tests ✔ · build ✔ · 34/34 interactions ✔ (AI path mocked) · axe 0 |
 | 11 — Final sweep | 2026-11-26 | `57b0e94` | lint ✔ · 64 tests ✔ · build ✔ · 34 interactions · 21-step walk-through · 6 PWA · axe 0 at 1280 + 390 × 28 variants |
+| 12 — Trash & history | 2026-11-26 | _see git log_ | lint ✔ · 69 tests ✔ · build ✔ · 36 interactions ✔ · walk-through ✔ · PWA ✔ · axe 0 |

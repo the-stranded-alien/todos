@@ -2,7 +2,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import {
   Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Calendar, BarChart3,
-  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS,
+  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS, Trash2,
 } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO } from '../utils/dates.js'
@@ -11,7 +11,7 @@ import { IconButton } from './ui/IconButton.jsx'
 
 const ICON_MAP = {
   ...PROJECT_ICONS,
-  Inbox, LayoutList, Sun, CalendarDays, Calendar, CheckCircle2, BarChart3,
+  Inbox, LayoutList, Sun, CalendarDays, Calendar, CheckCircle2, BarChart3, Trash2,
 }
 
 const VIEWS = [
@@ -22,6 +22,7 @@ const VIEWS = [
   { id: 'completed', label: 'Completed', icon: 'CheckCircle2' },
   { id: 'calendar',  label: 'Calendar',  icon: 'Calendar' },
   { id: 'stats',     label: 'Stats',     icon: 'BarChart3' },
+  { id: 'trash',     label: 'Trash',     icon: 'Trash2' },
 ]
 
 export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag, onNavigate, drawer = false }) => {
@@ -40,8 +41,10 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag, onNa
     counts.today = activeTasks.filter(t => t.dueDate && t.dueDate <= today).length
     const in7str = addDaysISO(7)
     counts.upcoming = activeTasks.filter(t => t.dueDate && t.dueDate > today && t.dueDate <= in7str).length
+    const byId = new Map(state.trash.map(e => [e.id, e]))
+    counts.trash = state.trash.filter(e => !(e.task.parentId && byId.get(e.task.parentId)?.batch === e.batch)).length
     return counts
-  }, [tasks])
+  }, [tasks, state.trash])
 
   const projectTaskCounts = useMemo(() => {
     const counts = {}

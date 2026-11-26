@@ -16,6 +16,7 @@ export const makeBackup = (data, settings) => ({
   projects: data.projects,
   tags: data.tags,
   history: data.history ?? [],
+  trash: data.trash ?? [],
 })
 
 const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v)
@@ -50,9 +51,12 @@ export const validateBackup = (raw) => {
     checkList(raw.tags, 'tags', [['id', 'string'], ['name', 'string']])
   if (problem) return { ok: false, error: problem }
   if (raw.history != null && !Array.isArray(raw.history)) return { ok: false, error: 'The activity history in this backup is damaged.' }
+  if (raw.trash != null && (!Array.isArray(raw.trash) || raw.trash.some(e => !isObj(e) || typeof e.id !== 'string' || !isObj(e.task)))) {
+    return { ok: false, error: 'The trash in this backup is damaged.' }
+  }
   return {
     ok: true,
-    data: { tasks: raw.tasks, projects: raw.projects ?? [], tags: raw.tags ?? [], history: raw.history ?? [] },
+    data: { tasks: raw.tasks, projects: raw.projects ?? [], tags: raw.tags ?? [], history: raw.history ?? [], trash: raw.trash ?? [] },
     settings: isObj(raw.settings) ? raw.settings : null,
   }
 }

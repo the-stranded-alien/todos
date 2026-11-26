@@ -25,6 +25,7 @@ import { ProjectEditor } from './components/Modals/ProjectEditor.jsx'
 import { TagEditor } from './components/Modals/TagEditor.jsx'
 import { SettingsDialog } from './components/Settings/SettingsDialog.jsx'
 import { HelpDialog } from './components/HelpDialog.jsx'
+import { TrashView } from './components/TrashView.jsx'
 import { Toaster } from './components/ui/Toaster.jsx'
 import { toast } from './toast.js'
 import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
@@ -88,7 +89,7 @@ const AppInner = () => {
       })
     }
     const view = p.get('view')
-    if (view && ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats'].includes(view)) dispatch({ type: 'SET_VIEW', view })
+    if (view && ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats', 'trash'].includes(view)) dispatch({ type: 'SET_VIEW', view })
     if (p.get('action') === 'new-task') requestAnimationFrame(() => quickAddRef.current?.focus())
     const taskId = p.get('task')
     if (taskId && state.tasks.some(t => t.id === taskId)) dispatch({ type: 'SELECT_TASK', id: taskId })
@@ -179,7 +180,9 @@ const AppInner = () => {
         <main className="flex flex-1 min-w-0 overflow-hidden">
           {/* Task list or special view */}
           <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-            {isCalendar ? (
+            {view === 'trash' ? (
+              <TrashView />
+            ) : isCalendar ? (
               <CalendarView />
             ) : isStats ? (
               <StatsPanel />

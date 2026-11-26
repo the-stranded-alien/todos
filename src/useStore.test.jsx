@@ -15,7 +15,7 @@ const setup = async () => {
 }
 const titles = (h) => h.current.state.tasks.map(t => t.title).sort()
 
-beforeEach(async () => { await db.importAll({ tasks: [], projects: [], tags: [], history: [] }) })
+beforeEach(async () => { await db.importAll({ tasks: [], projects: [], tags: [], history: [], trash: [] }) })
 
 describe('store: never lose data', () => {
   it('deleting a parent removes its subtasks, and undo restores all of them', async () => {
@@ -123,5 +123,68 @@ describe('store: never lose data', () => {
     expect(h.current.state.tasks).toHaveLength(0)
     await act(async () => { await h.current.undo() })
     expect(titles(h)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('deleting moves a task and its subtasks to the trash; restore brings them back', async () => {
+    const h = await setup()
+    let parent
+    await act(async () => {
+      parent = await h.current.createTask({ title: 'Parent' })
+      await h.current.createTask({ title: 'Child', parentId: parent.id })
+    })
+    await act(async () => { await h.current.deleteTask(parent.id) })
+    expect(h.current.state.tasks).toHaveLength(0)
+    expect(h.current.state.trash.map(e => e.task.title).sort()).toEqual(['Child', 'Parent'])
+    let n
+    await act(async () => { n = await h.current.restoreFromTrash(parent.id) })
+    expect(n).toBe(2)
+    expect(titles(h)).toEqual(['Child', 'Parent'])
+    expect(h.current.state.trash).toHaveLength(0)
+  })
+
+  it('restoring only a subtask whose parent is gone makes it top-level', async () => {
+    const h = await setup()
+    let parent, child
+    await act(async () => {
+      parent = await h.current.createTask({ title: 'P' })
+      child = await h.current.createTask({ title: 'C', parentId: parent.id })
+    })
+    await act(async () => { await h.current.deleteTask(child.id) })
+    await act(async () => { await h.current.deleteTask(parent.id) })
+    await act(async () => { await h.current.deletePermanently([parent.id]) })
+    await act(async () => { await h.current.restoreFromTrash(child.id) })
+    expect(h.current.state.tasks.find(t => t.id === child.id).parentId).toBeNull()
+  })
+
+  it('permanent delete and empty trash are undoable', async () => {
+    const h = await setup()
+    await act(async () => {
+      for (const t of ['a', 'b']) { const x = await h.current.createTask({ title: t }); await h.current.deleteTask(x.id) }
+    })
+    await act(async () => { await h.current.emptyTrash() })
+    expect(h.current.state.trash).toHaveLength(0)
+    expect(await db.getTrash()).toHaveLength(0)
+    await act(async () => { await h.current.undo() })
+    expect(h.current.state.trash).toHaveLength(2)
+  })
+
+  it('trash entries older than 30 days are purged', async () => {
+    await db.putTrash([
+      { id: 'old', task: { id: 'old', title: 'Old' }, deletedAt: Date.now() - 31 * 86400000, batch: 'x' },
+      { id: 'new', task: { id: 'new', title: 'New' }, deletedAt: Date.now() - 2 * 86400000, batch: 'y' },
+    ])
+    const h = await setup()
+    expect(h.current.state.trash.map(e => e.id)).toEqual(['new'])
+  })
+
+  it('restoreVersion puts back earlier field values', async () => {
+    const h = await setup()
+    let t
+    await act(async () => { t = await h.current.createTask({ title: 'v1', notes: 'n1' }) })
+    await act(async () => { await h.current.updateTask(t.id, { title: 'v2', notes: 'n2' }) })
+    const entry = (await db.getTaskHistory(t.id)).find(x => x.action === 'updated')
+    expect(entry.diff.before).toEqual({ title: 'v1', notes: 'n1' })
+    await act(async () => { await h.current.restoreVersion(t.id, entry.diff.before) })
+    expect(h.current.state.tasks[0]).toMatchObject({ title: 'v1', notes: 'n1' })
   })
 })

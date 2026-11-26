@@ -135,8 +135,8 @@ const Features = ({ prefs }) => {
   )
 }
 
-const Storage = () => {
-  const { state, clearCompleted, undo } = useStore()
+const Storage = ({ onClose }) => {
+  const { state, clearCompleted, undo, dispatch } = useStore()
   const { downloadBackup, restoreFromInput, restoreSnapshot } = useBackup()
   const [info, setInfo] = useState({ estimate: null, persisted: null, snapshots: [] })
   const fileRef = useRef(null)
@@ -213,11 +213,21 @@ const Storage = () => {
         )}
       </Section>
 
+      <Section title="Trash">
+        <div className="switch-row">
+          <span className="switch-text">
+            <span className="switch-label">Deleted tasks</span>
+            <span className="switch-desc">{state.trash.length ? `${state.trash.length} in the trash, each kept for 30 days.` : 'The trash is empty.'}</span>
+          </span>
+          <button type="button" className="btn btn-ghost" onClick={() => { onClose(); dispatch({ type: 'SET_VIEW', view: 'trash' }) }}>Open trash</button>
+        </div>
+      </Section>
+
       <Section title="Clean up">
         <div className="switch-row">
           <span className="switch-text">
             <span className="switch-label">Completed tasks</span>
-            <span className="switch-desc">{done ? `${done} completed task${done > 1 ? 's' : ''} (and their subtasks).` : 'Nothing to clear.'}</span>
+            <span className="switch-desc">{done ? `${done} completed task${done > 1 ? 's' : ''} (and their subtasks) move to the trash.` : 'Nothing to clear.'}</span>
           </span>
           <button
             type="button"
@@ -296,7 +306,7 @@ export const SettingsDialog = ({ initialSection = 'Workspace', onClose, onOpenHe
           {tab === 'Workspace' && <Workspace prefs={prefs} />}
           {tab === 'Appearance' && <Appearance prefs={prefs} />}
           {tab === 'Features' && <Features prefs={prefs} />}
-          {tab === 'Storage' && <Storage />}
+          {tab === 'Storage' && <Storage onClose={onClose} />}
           {tab === 'About' && <About onOpenHelp={onOpenHelp} onOpenShortcuts={onOpenShortcuts} />}
         </div>
       </div>
