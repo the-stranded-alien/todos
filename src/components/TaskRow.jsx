@@ -13,6 +13,7 @@ import { useElapsed } from '../hooks/useElapsed.js'
 import { PRIORITY_VARS, tint, ink } from '../utils/colors.js'
 import { focusTaskRow } from '../utils/focus.js'
 import { usePrefs } from '../prefs.js'
+import { describeRecurrence } from '../utils/recurrence.js'
 
 const PRIORITY_COLORS = ['transparent', ...PRIORITY_VARS.slice(1)]
 const PRIORITY_NAMES = ['', 'Low priority', 'Medium priority', 'High priority']
@@ -240,7 +241,7 @@ export const TaskRow = ({
             )}
             {task.recurring && (
               <span className="task-meta-item">
-                <RotateCcw size={10} /> Repeats {task.recurring.freq}
+                <RotateCcw size={10} /> {describeRecurrence(task.recurring, task.dueDate)}
               </span>
             )}
             {tagObjs.map(tag => (

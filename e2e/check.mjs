@@ -134,6 +134,14 @@ for (const width of WIDTHS) {
         if (width <= 768) await page.getByRole('button', { name: 'Show sidebar' }).click()
         await page.getByRole('button', { name: 'New smart list' }).click()
       }, async () => { await page.keyboard.press('Escape') }],
+      ['repeat editor', async () => {
+        await page.locator('.task-title').first().click()
+        await page.getByRole('combobox', { name: 'Repeats' }).selectOption('monthly')
+        await page.getByRole('combobox', { name: 'Ends' }).selectOption('after')
+      }, async () => {
+        await page.getByRole('combobox', { name: 'Repeats' }).selectOption('none').catch(() => {})
+        await page.keyboard.press('Escape')
+      }],
       ['filters open', async () => { await page.getByRole('button', { name: 'Filters' }).click() }, async () => { await page.getByRole('button', { name: 'Filters' }).click() }],
       ['command palette', async () => { await page.keyboard.press('Control+k'); await page.keyboard.type('go') }, async () => { await page.keyboard.press('Escape') }],
       ['shortcuts dialog', async () => { await page.keyboard.press('?') }, async () => { await page.keyboard.press('Escape') }],

@@ -932,3 +932,14 @@ mark { background: var(--accent-soft); color: var(--text-1); box-shadow: inset 0
 .check-chip:has(input:checked) { border-color: var(--accent-border); background: var(--accent-soft); color: var(--text-1); }
 .check-chip:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .list-rules { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -8px 0 12px; color: var(--text-3); font-size: .78rem; }
+
+/* ── Repeat editor ────────────────────────────────────────── */
+.repeat-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.repeat-text { font-size: .8rem; color: var(--text-2); }
+.repeat-num { width: 64px; }
+.repeat-seg { display: flex; flex-wrap: wrap; margin-top: 6px; }
+.weekday-picker { display: flex; gap: 4px; margin-top: 6px; }
+.weekday-picker button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-2); cursor: pointer; font: inherit; font-size: .75rem; font-weight: 600; }
+.weekday-picker button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.repeat-summary { margin: 6px 0 0; font-size: .78rem; color: var(--text-2); }
+.repeat-skip { font-size: .75rem; padding: 3px 8px; margin-top: 4px; }

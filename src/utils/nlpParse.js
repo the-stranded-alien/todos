@@ -2,6 +2,7 @@
 // Parses "#tag @project p1-p4 !1-!4 date-tokens from title"
 
 import { parseNLDate } from './nlpDate.js'
+import { parseRecurrence } from './recurrence.js'
 
 const DATE_TOKENS = [
   'today','tomorrow','yesterday','monday','tuesday','wednesday',
@@ -22,6 +23,14 @@ export const parseTaskInput = (raw) => {
   let priority = 0
   let dueDate = null
   let dueTime = null
+  let recurring = null
+
+  // Repeat phrases first ("every friday" must not become a one-off date)
+  const rec = parseRecurrence(title)
+  if (rec) {
+    recurring = rec.rule
+    for (const m of rec.match) title = title.replace(m, ' ')
+  }
 
   // Extract time HH:MM or H:MMam/pm
   title = title.replace(/\b(\d{1,2}):(\d{2})(am|pm)?\b/gi, (match, h, m, ap) => {
@@ -81,5 +90,5 @@ export const parseTaskInput = (raw) => {
   // Clean up extra whitespace
   title = title.replace(/\s{2,}/g, ' ').trim()
 
-  return { title, tags, projectName, priority, dueDate, dueTime }
+  return { title, tags, projectName, priority, dueDate, dueTime, recurring }
 }

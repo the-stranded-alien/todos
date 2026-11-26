@@ -16,7 +16,7 @@ const results = []
 let n = 0
 const step = async (name, fn) => {
   n++
-  try { await fn(); results.push(`✔ ${String(n).padStart(2)} ${name}`) } catch (e) { results.push(`✘ ${String(n).padStart(2)} ${name}: ${e.message.split('\n')[0]}`) }
+  try { await fn(); results.push(`✔ ${String(n).padStart(2)} ${name}`) } catch (e) { results.push(`✘ ${String(n).padStart(2)} ${name}: ${e.message.split('\n').slice(0, process.env.DEBUG ? 12 : 1).join('\n   ')}`) }
 }
 const assert = (c, m) => { if (!c) throw new Error(m) }
 const quick = page.getByRole('textbox', { name: 'Quick add task' })
@@ -81,12 +81,44 @@ await step('timer: start, it ticks, stop keeps the tracked time', async () => {
 
 await step('repeat weekly: completing creates the next one', async () => {
   await page.locator('.task-title', { hasText: 'Water the plants' }).click()
-  await page.getByRole('group', { name: 'Repeat' }).getByRole('button', { name: 'weekly' }).click()
+  await page.getByRole('combobox', { name: 'Repeats' }).selectOption('weekly')
   await page.getByRole('button', { name: 'Close details' }).click()
   await row('Water the plants').locator('.custom-checkbox').click()
   await page.waitForTimeout(800)
   await view('upcoming')
   await row('Water the plants').waitFor({ timeout: 2000 })
+})
+
+await step('repeat phrases: every weekday, skip, ends after N times', async () => {
+  await view('all')
+  await quick.fill('Daily standup every weekday 9:30am')
+  const chip = await page.locator('.quick-add-box + div').textContent()
+  assert(chip.includes('Every weekday'), 'chip: ' + chip)
+  await quick.press('Enter')
+  const r = row('Daily standup')
+  await r.waitFor()
+  assert((await r.locator('.task-meta').textContent()).includes('Every weekday'), 'badge missing')
+  await page.locator('.task-title', { hasText: 'Daily standup' }).click()
+  const due1 = await page.getByRole('textbox', { name: 'Due date' }).inputValue()
+  const wd = new Date(`${due1}T12:00`).getDay()
+  assert(wd >= 1 && wd <= 5, 'first due not a weekday: ' + due1)
+  assert(await page.getByRole('button', { name: 'Monday' }).getAttribute('aria-pressed') === 'true', 'Mon not selected')
+  assert(await page.getByRole('button', { name: 'Sunday' }).getAttribute('aria-pressed') === 'false', 'Sun selected')
+  await page.getByRole('button', { name: 'Skip this one' }).click()
+  await page.waitForTimeout(300)
+  const due2 = await page.getByRole('textbox', { name: 'Due date' }).inputValue()
+  const wd2 = new Date(`${due2}T12:00`).getDay()
+  assert(due2 > due1 && wd2 >= 1 && wd2 <= 5, `skip: ${due1} → ${due2}`)
+  // end after 3 times: the skip used one, so two completions finish the series
+  await page.getByRole('combobox', { name: 'Ends' }).selectOption('after')
+  await page.getByRole('spinbutton', { name: 'Number of times' }).fill('3')
+  await page.getByRole('spinbutton', { name: 'Number of times' }).blur()
+  await page.getByRole('button', { name: 'Close details' }).click()
+  for (let i = 0; i < 2; i++) {
+    await row('Daily standup').first().locator('.custom-checkbox').click()
+    await page.waitForTimeout(700)
+  }
+  assert(await page.locator('main ul[aria-label$=" tasks"] .task-title', { hasText: 'Daily standup' }).count() === 0, 'a third occurrence was created')
 })
 
 await step('subtasks: add in details, shown nested, collapse', async () => {

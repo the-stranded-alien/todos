@@ -1,8 +1,9 @@
 // ── Quick Add bar ──────────────────────────────────────────
 import { useState, useCallback } from 'react'
-import { Plus, Mic, MicOff, Calendar, Flag, Hash, AtSign } from '../icons.jsx'
+import { Plus, Mic, MicOff, Calendar, Flag, Hash, AtSign, RotateCcw } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
+import { firstOccurrence, describeRecurrence } from '../utils/recurrence.js'
 import { parseTaskInput } from '../utils/nlpParse.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import { PRIORITY_VARS, tint } from '../utils/colors.js'
@@ -53,7 +54,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
     }
 
     // Use view's default due date if no date was parsed from input
-    const dueDate = p.dueDate || defaultDueDate || null
+    const dueDate = p.dueDate || (p.recurring ? firstOccurrence(p.recurring, todayISO()) : null) || defaultDueDate || null
 
     // Clear straight away (no double submits); keep focus here only if the
     // user hasn't moved on while the task was being saved.
@@ -65,6 +66,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
       priority: p.priority,
       dueDate,
       dueTime: p.dueTime,
+      recurring: p.recurring ? { from: 'due', count: 0, ...p.recurring } : null,
       projectId,
       tags: tagIds,
       order: Date.now(),
@@ -79,7 +81,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
   }, [submit, value])
 
   // Show chips if something meaningful was parsed
-  const hasParsed = parsed && (parsed.dueDate || parsed.priority > 0 || parsed.tags.length > 0 || parsed.projectName)
+  const hasParsed = parsed && (parsed.dueDate || parsed.priority > 0 || parsed.tags.length > 0 || parsed.projectName || parsed.recurring)
 
   // Effective due date to preview (parsed or default)
   const effectiveDueDate = parsed?.dueDate || (value.trim() ? defaultDueDate : null)
@@ -141,6 +143,11 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
           {effectiveDueDate && (
             <span className="tag-chip" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
               <Calendar size={10} /> {effectiveDueDate === todayISO() ? 'Today' : effectiveDueDate}
+            </span>
+          )}
+          {parsed?.recurring && (
+            <span className="tag-chip" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
+              <RotateCcw size={10} /> {describeRecurrence(parsed.recurring)}
             </span>
           )}
           {parsed?.priority > 0 && (

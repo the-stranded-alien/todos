@@ -5,7 +5,8 @@
 // become one undo step; rapid edits to one field coalesce into one step.
 import { useReducer, useCallback, useRef, useEffect } from 'react'
 import { StoreContext } from './store/context.js'
-import { parseLocalISO, toLocalISO } from './utils/dates.js'
+import { todayISO } from './utils/dates.js'
+import { nextOccurrence } from './utils/recurrence.js'
 import { DEFAULT_SWATCH } from './utils/colors.js'
 import { nanoid } from './utils/nanoid.js'
 import { onRemoteChange } from './sync.js'
@@ -150,15 +151,6 @@ const withDescendants = (all, rootId) => {
     for (const c of all) if (c.parentId === id) queue.push(c.id)
   }
   return out
-}
-
-const getNextDueDate = (dueDateStr, recurring) => {
-  const d = parseLocalISO(dueDateStr)
-  const { freq, interval = 1 } = recurring
-  if (freq === 'daily') d.setDate(d.getDate() + interval)
-  else if (freq === 'weekly') d.setDate(d.getDate() + 7 * interval)
-  else if (freq === 'monthly') d.setMonth(d.getMonth() + interval)
-  return toLocalISO(d)
 }
 
 const history = (taskId, action, diff) =>
@@ -316,20 +308,38 @@ export const StoreProvider = ({ children }) => {
     await history(id, 'completed', { before: { completed: false }, after: { completed: true } })
     pushUndo(() => writeTasks([task]), () => writeTasks([next]))
 
-    // Recurring: create the next occurrence (same undo step)
-    if (task.recurring && task.dueDate) {
-      const { id: _i, createdAt: _c, updatedAt: _u, ...rest } = task
-      await createTask({
-        ...rest,
-        completed: false,
-        completedAt: null,
-        dueDate: getNextDueDate(task.dueDate, task.recurring),
-        timeTracked: 0,
-        timerStartedAt: null,
-        order: now + 1,
-      })
+    // Repeating: create the next occurrence (same undo step) unless the rule has ended
+    if (task.recurring) {
+      const rule = task.recurring
+      const base = rule.from === 'completion' || !task.dueDate ? todayISO() : task.dueDate
+      const nextDue = nextOccurrence(rule, base, rule.anchor ?? task.dueDate ?? base)
+      if (nextDue) {
+        const { id: _i, createdAt: _c, updatedAt: _u, ...rest } = task
+        await createTask({
+          ...rest,
+          completed: false,
+          completedAt: null,
+          dueDate: nextDue,
+          recurring: { ...rule, anchor: rule.anchor ?? task.dueDate ?? base, count: (rule.count ?? 0) + 1 },
+          timeTracked: 0,
+          timerStartedAt: null,
+          order: now + 1,
+        })
+      }
     }
   }), [grouped, pushUndo, writeTasks, createTask])
+
+  // Move a repeating task to its next date without completing it
+  const skipOccurrence = useCallback(async (id) => {
+    const task = await db.getTask(id)
+    if (!task?.recurring) return null
+    const rule = task.recurring
+    const base = task.dueDate ?? todayISO()
+    const nextDue = nextOccurrence(rule, base, rule.anchor ?? base)
+    if (!nextDue) return null
+    await updateTask(id, { dueDate: nextDue, recurring: { ...rule, anchor: rule.anchor ?? base, count: (rule.count ?? 0) + 1 } })
+    return nextDue
+  }, [updateTask])
 
   const uncompleteTask = useCallback(async (id) => {
     const task = await db.getTask(id)
@@ -598,7 +608,7 @@ export const StoreProvider = ({ children }) => {
   const value = {
     state,
     dispatch,
-    createTask, updateTask, completeTask, uncompleteTask, deleteTask, reorderTasks,
+    createTask, updateTask, completeTask, uncompleteTask, deleteTask, reorderTasks, skipOccurrence,
     startTimer, stopTimer,
     createProject, updateProject, deleteProject,
     createTag, updateTag, deleteTag,

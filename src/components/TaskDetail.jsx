@@ -8,6 +8,7 @@ import { useStore } from '../store/context.js'
 import { getTaskHistory } from '../db.js'
 import { DraftText } from './ui/DraftText.jsx'
 import { SuggestSubtasks } from './SuggestSubtasks.jsx'
+import { RepeatEditor } from './RepeatEditor.jsx'
 import { usePrefs } from '../prefs.js'
 import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
@@ -23,7 +24,6 @@ const PRIORITY_OPTIONS = [
   { value: 3, label: 'High',   color: 'var(--prio-3)' },
 ]
 
-const FREQ_OPTIONS = ['none','daily','weekly','monthly']
 
 const FIELD_NAMES = {
   title: 'name', notes: 'notes', priority: 'priority', dueDate: 'due date', dueTime: 'due time',
@@ -42,7 +42,7 @@ const formatDuration = (ms) => {
 }
 
 export const TaskDetail = ({ onClose }) => {
-  const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask, undo, restoreVersion } = useStore()
+  const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask, undo, restoreVersion, skipOccurrence } = useStore()
   const task = state.tasks.find(t => t.id === state.selectedTaskId)
 
   const [showPreview, setShowPreview] = useState(false)
@@ -332,30 +332,15 @@ export const TaskDetail = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Recurring */}
-        <div>
-          <h3 className="detail-label" id="detail-repeat">Repeat</h3>
-          <div className="flex gap-1.5 mt-1" role="group" aria-labelledby="detail-repeat">
-            {FREQ_OPTIONS.map(freq => (
-              <button
-                key={freq}
-                className="btn flex-1"
-                aria-pressed={task.recurring?.freq === freq || (!task.recurring && freq === 'none')}
-                onClick={() => update({ recurring: freq === 'none' ? null : { freq, interval: 1 } })}
-                style={{
-                  fontSize: '.72rem',
-                  padding: '4px 4px',
-                  background: (task.recurring?.freq === freq || (!task.recurring && freq === 'none')) ? 'var(--accent-soft)' : 'var(--bg-card)',
-                  color: (task.recurring?.freq === freq || (!task.recurring && freq === 'none')) ? 'var(--accent)' : 'var(--text-3)',
-                  border: `1px solid ${(task.recurring?.freq === freq || (!task.recurring && freq === 'none')) ? 'var(--accent-border)' : 'var(--border)'}`,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {freq}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Repeat */}
+        <RepeatEditor
+          task={task}
+          onChange={(rule) => update({ recurring: rule })}
+          onSkip={async () => {
+            const next = await skipOccurrence(task.id)
+            if (next) toast({ message: `Skipped. Next one is due ${new Date(`${next}T12:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}.`, action: { label: 'Undo', onClick: undo } })
+          }}
+        />
 
         {/* Time tracking */}
         {prefs.timers && (

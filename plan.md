@@ -204,12 +204,14 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 - [ ] Snooze from the notification (actions: Done, Snooze 10 min)
 - Guidelines: §10 feature detection with fallbacks, §13 say plainly what works where
 
-### 4. Flexible repeats ⬜ (M)
-- [ ] Every N days/weeks/months/years; specific weekdays; "2nd Tuesday", "last weekday of the month"
-- [ ] Repeat from the due date **or** from completion ("3 days after I finish")
-- [ ] End after N times or on a date; skip one occurrence
-- [ ] Quick-add understands "every weekday", "every 2 weeks on fri", "monthly on the 15th"
-- [ ] Tested with fake timers across month ends, DST and leap years
+### 4. Flexible repeats ✅ (Batch 14) (M)
+- [x] Every N days/weeks/months/years; specific weekdays; "2nd Tuesday", "last weekday of the month"
+- [x] Repeat from the due date **or** from completion ("3 days after I finish")
+- [x] End after N times or on a date; skip one occurrence
+- [x] Quick-add understands "every weekday", "every 2 weeks on fri", "monthly on the 15th"
+- [x] Tested with fake timers across month ends, DST and leap years
+- **Notes:** `utils/recurrence.js` holds the rule model and `nextOccurrence`, done at noon local time so daylight saving never moves the day. Old `{ freq, interval }` rules still work. "Every 2 weeks on Mon, Thu" stays in step with the series' first week (`anchor`). Monthly "on day 31" clamps to short months and goes back to 31 afterwards. Ending "after N times" counts skipped occurrences too (as calendar apps do); the editor shows "(N so far)". The details panel has a Repeat editor (frequency, every N, weekday picker, day-of-month vs nth weekday incl. "last", from due date / after completion, ends never/after/on date, live "Next: …" summary, Skip this one with Undo). Task rows show the plain-words summary.
+- **Verified:** 20 recurrence tests (month ends, Feb 29, DST weeks, every-2-weeks stepping, 2nd Tuesday / last Friday / last weekday, end rules, parsing 8 phrases + "after done") and a quick-add parsing test. Walk-through step: "every weekday 9:30am" → chip, weekday due date, Mon–Fri selected, Skip moves to the next weekday, ends after 3 → no extra occurrence. Axe 0 with the editor open at 1280 and 390. Screenshot checked: "Every 2 weeks on Mon, Thu… Next: Mon 7 Dec" from a Thursday is correct.
 
 ### 5. Smart lists (saved filters) ✅ (Batch 13) (S)
 - [x] Save the current search + filters + sort as a named list in the sidebar (icon, colour)
@@ -287,3 +289,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 11 — Final sweep | 2026-11-26 | `57b0e94` | lint ✔ · 64 tests ✔ · build ✔ · 34 interactions · 21-step walk-through · 6 PWA · axe 0 at 1280 + 390 × 28 variants |
 | 12 — Trash & history | 2026-11-26 | _see git log_ | lint ✔ · 69 tests ✔ · build ✔ · 36 interactions ✔ · walk-through ✔ · PWA ✔ · axe 0 |
 | 13 — Smart lists | 2026-11-26 | _see git log_ | lint ✔ · 76 tests ✔ · build ✔ · 37 interactions ✔ · walk-through ✔ · axe 0 |
+| 14 — Flexible repeats | 2026-11-26 | _see git log_ | lint ✔ · 97 tests ✔ · build ✔ · interactions ✔ · 22-step walk-through ✔ · axe 0 |
