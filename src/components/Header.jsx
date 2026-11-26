@@ -1,7 +1,7 @@
 // ── Header ─────────────────────────────────────────────────
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Search, Moon, Sun, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
 import { useIsDark, toggleDark } from '../hooks/useIsDark.js'
 import * as dbUtils from '../db.js'
 import { exportJSON, exportCSV } from '../utils/export.js'

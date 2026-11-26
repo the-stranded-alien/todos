@@ -1,5 +1,7 @@
 // ── Global state store ─────────────────────────────────────
-import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react'
+import { useReducer, useCallback, useRef, useEffect } from 'react'
+import { StoreContext } from './store/context.js'
+import { parseLocalISO, toLocalISO } from './utils/dates.js'
 import { nanoid } from './utils/nanoid.js'
 import * as db from './db.js'
 import { addHistory } from './db.js'
@@ -96,10 +98,6 @@ const reducer = (state, action) => {
     default: return state
   }
 }
-
-// ── Context ────────────────────────────────────────────────
-export const StoreContext = createContext(null)
-export const useStore = () => useContext(StoreContext)
 
 // ── Undo/Redo stack ────────────────────────────────────────
 const MAX_UNDO = 50
@@ -280,6 +278,17 @@ export const StoreProvider = ({ children }) => {
 
   // ── Timer actions ────────────────────────────────────────
 
+  const stopTimer = useCallback(async (id) => {
+    const task = state.tasks.find(t => t.id === id)
+    if (!task || task.timerStartedAt == null) return
+    const now = Date.now()
+    const elapsed = now - task.timerStartedAt
+    const next = { ...task, timeTracked: (task.timeTracked || 0) + elapsed, timerStartedAt: null, updatedAt: now }
+    await db.putTask(next)
+    dispatch({ type: 'UPDATE_TASK', task: next })
+    dispatch({ type: 'SET_ACTIVE_TIMER', taskId: null })
+  }, [state.tasks])
+
   const startTimer = useCallback(async (id) => {
     // Stop previous timer
     if (state.activeTimerTaskId && state.activeTimerTaskId !== id) {
@@ -292,18 +301,7 @@ export const StoreProvider = ({ children }) => {
     await db.putTask(next)
     dispatch({ type: 'UPDATE_TASK', task: next })
     dispatch({ type: 'SET_ACTIVE_TIMER', taskId: id })
-  }, [state.tasks, state.activeTimerTaskId])
-
-  const stopTimer = useCallback(async (id) => {
-    const task = state.tasks.find(t => t.id === id)
-    if (!task || task.timerStartedAt == null) return
-    const now = Date.now()
-    const elapsed = now - task.timerStartedAt
-    const next = { ...task, timeTracked: (task.timeTracked || 0) + elapsed, timerStartedAt: null, updatedAt: now }
-    await db.putTask(next)
-    dispatch({ type: 'UPDATE_TASK', task: next })
-    dispatch({ type: 'SET_ACTIVE_TIMER', taskId: null })
-  }, [state.tasks])
+  }, [state.tasks, state.activeTimerTaskId, stopTimer])
 
   // ── Project actions ──────────────────────────────────────
 
@@ -375,7 +373,7 @@ export const StoreProvider = ({ children }) => {
       await db.putTask(next)
       dispatch({ type: 'UPDATE_TASK', task: next })
     }
-  }, [state.tags, state.tasks])
+  }, [state.tasks])
 
   // ── Bulk actions ─────────────────────────────────────────
 
@@ -460,10 +458,10 @@ export const StoreProvider = ({ children }) => {
 // ── Helpers ────────────────────────────────────────────────
 
 const getNextDueDate = (dueDateStr, recurring) => {
-  const d = new Date(dueDateStr)
+  const d = parseLocalISO(dueDateStr)
   const { freq, interval = 1 } = recurring
   if (freq === 'daily') d.setDate(d.getDate() + interval)
   else if (freq === 'weekly') d.setDate(d.getDate() + 7 * interval)
   else if (freq === 'monthly') d.setMonth(d.getMonth() + interval)
-  return d.toISOString().slice(0, 10)
+  return toLocalISO(d)
 }

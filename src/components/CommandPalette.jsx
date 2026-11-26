@@ -1,7 +1,7 @@
 // ── Command palette ────────────────────────────────────────
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Search, Plus, Folder, Tag, LayoutList, Sun, Moon, CheckSquare } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
 import { toggleDark } from '../hooks/useIsDark.js'
 
 const STATIC_COMMANDS = [
@@ -28,7 +28,7 @@ const fuzzyMatch = (str, query) => {
   return qi === q.length
 }
 
-export const CommandPalette = ({ onClose, onNewTask, onNewProject, onNewTag, quickAddRef }) => {
+export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef }) => {
   const { state, dispatch } = useStore()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
@@ -66,7 +66,6 @@ export const CommandPalette = ({ onClose, onNewTask, onNewProject, onNewTag, qui
     return all.filter(item => fuzzyMatch(item.label, query))
   }, [query, state.tasks, state.projects, state.tags])
 
-  useEffect(() => { setSelected(0) }, [query])
 
   const execute = useCallback((item) => {
     if (item.id === 'new-task') { onClose(); setTimeout(() => quickAddRef?.current?.focus(), 50) }
@@ -123,7 +122,7 @@ export const CommandPalette = ({ onClose, onNewTask, onNewProject, onNewTag, qui
           <input
             ref={inputRef}
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { setQuery(e.target.value); setSelected(0) }}
             onKeyDown={handleKeyDown}
             placeholder="Type a command or search…"
             style={{

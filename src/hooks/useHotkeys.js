@@ -9,7 +9,7 @@ export const useHotkeys = (handlers) => {
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
         || document.activeElement?.contentEditable === 'true'
 
-      for (const { key, ctrl, shift, meta, allowInInput, handler } of handlers) {
+      for (const { key, ctrl, shift, allowInInput, handler } of handlers) {
         const matchCtrl  = ctrl  ? (e.ctrlKey || e.metaKey) : !(e.ctrlKey || e.metaKey)
         const matchShift = shift ? e.shiftKey : !e.shiftKey
         const matchKey   = e.key === key

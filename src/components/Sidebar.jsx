@@ -5,7 +5,8 @@ import {
   Plus, Folder, ChevronDown, ChevronRight, Pencil,
   Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee
 } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
+import { todayISO, addDaysISO } from '../utils/dates.js'
 
 const ICON_MAP = {
   Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee,
@@ -23,23 +24,20 @@ const VIEWS = [
 ]
 
 export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) => {
-  const { state, dispatch } = useStore()
-  const { tasks, projects, tags, view, sidebarOpen } = state
+  const { state, dispatch, updateTask } = useStore()
+  const { tasks, projects, view, sidebarOpen } = state
   const [projectsOpen, setProjectsOpen] = useState(true)
   const [tagsOpen, setTagsOpen] = useState(true)
   const [dragOverId, setDragOverId] = useState(null)
-  const [draggingId, setDraggingId] = useState(null)
 
   const taskCounts = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = todayISO()
     const counts = { inbox: 0, today: 0, upcoming: 0, all: 0 }
     const activeTasks = tasks.filter(t => !t.completed)
     counts.all = activeTasks.length
     counts.inbox = activeTasks.filter(t => !t.projectId && !t.parentId).length
     counts.today = activeTasks.filter(t => t.dueDate && t.dueDate <= today).length
-    const in7 = new Date()
-    in7.setDate(in7.getDate() + 7)
-    const in7str = in7.toISOString().slice(0, 10)
+    const in7str = addDaysISO(7)
     counts.upcoming = activeTasks.filter(t => t.dueDate && t.dueDate > today && t.dueDate <= in7str).length
     return counts
   }, [tasks])
@@ -71,22 +69,19 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
   const sortedProjects = useMemo(() =>
     [...projects].sort((a, b) => a.order - b.order), [projects])
 
-  const handleDragStart = useCallback((e, id) => {
-    setDraggingId(id)
-    e.dataTransfer.effectAllowed = 'move'
-  }, [])
-
+  // Drop a task (dragged from the list) onto a project to move it there
   const handleDragOver = useCallback((e, id) => {
+    if (!e.dataTransfer.types.includes('taskid')) return
     e.preventDefault()
     setDragOverId(id)
   }, [])
 
-  const handleDrop = useCallback((e, targetId) => {
+  const handleDrop = useCallback((e, projectId) => {
     e.preventDefault()
-    // Task drop onto project is handled via DnD in TaskList
     setDragOverId(null)
-    setDraggingId(null)
-  }, [])
+    const taskId = e.dataTransfer.getData('taskId')
+    if (taskId) updateTask(taskId, { projectId })
+  }, [updateTask])
 
   if (!sidebarOpen) return null
 
@@ -180,8 +175,6 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
                 borderTop: dragOverId === project.id ? '2px solid var(--accent)' : '2px solid transparent',
               }}
               onClick={() => setView(`project:${project.id}`)}
-              draggable
-              onDragStart={e => handleDragStart(e, project.id)}
               onDragOver={e => handleDragOver(e, project.id)}
               onDrop={e => handleDrop(e, project.id)}
               onDragLeave={() => setDragOverId(null)}

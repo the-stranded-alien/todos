@@ -1,11 +1,17 @@
+import { readPref, writePref } from '../utils/storage.js'
 // ── Web Notifications ──────────────────────────────────────
 import { useEffect } from 'react'
 
 export const useNotifications = () => {
   useEffect(() => {
-    // Register service worker
-    if ('serviceWorker' in navigator) {
+    if (!('serviceWorker' in navigator)) return
+    if (import.meta.env.PROD) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
+    } else {
+      // A stale production worker on the dev port would serve old assets.
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => regs.forEach(r => r.unregister()))
+        .catch(() => {})
     }
 
     // Request permission (deferred, not on mount to avoid annoyance)
@@ -44,8 +50,8 @@ export const scheduleNotification = async (task) => {
   }
 
   // Store in localStorage for persistence
-  const stored = JSON.parse(localStorage.getItem('scheduled-notifications') || '[]')
+  const stored = readPref('scheduled-notifications', [])
   const filtered = stored.filter(n => n.taskId !== task.id)
   filtered.push({ taskId: task.id, timestamp: dateTime.getTime(), title: task.title })
-  localStorage.setItem('scheduled-notifications', JSON.stringify(filtered))
+  writePref('scheduled-notifications', filtered)
 }

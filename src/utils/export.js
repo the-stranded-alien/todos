@@ -1,3 +1,4 @@
+import { todayISO } from './dates.js'
 // ── Export utilities ───────────────────────────────────────
 
 export const exportJSON = (data) => {
@@ -6,7 +7,7 @@ export const exportJSON = (data) => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `todos-export-${new Date().toISOString().slice(0,10)}.json`
+  a.download = `todos-export-${todayISO()}.json`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -34,7 +35,7 @@ export const exportCSV = (tasks, projects, tags) => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `todos-export-${new Date().toISOString().slice(0,10)}.csv`
+  a.download = `todos-export-${todayISO()}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

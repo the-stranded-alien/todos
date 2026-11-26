@@ -1,7 +1,8 @@
 // ── Quick Add bar ──────────────────────────────────────────
 import { useState, useCallback } from 'react'
 import { Plus, Mic, MicOff, Calendar, Flag, Hash, AtSign } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
+import { todayISO } from '../utils/dates.js'
 import { parseTaskInput } from '../utils/nlpParse.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 
@@ -135,7 +136,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
         <div className="flex items-center gap-1.5 mt-2 px-1 flex-wrap">
           {effectiveDueDate && (
             <span className="tag-chip" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
-              <Calendar size={10} /> {effectiveDueDate === new Date().toISOString().slice(0,10) ? 'Today' : effectiveDueDate}
+              <Calendar size={10} /> {effectiveDueDate === todayISO() ? 'Today' : effectiveDueDate}
             </span>
           )}
           {parsed?.priority > 0 && (

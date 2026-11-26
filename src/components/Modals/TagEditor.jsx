@@ -1,7 +1,7 @@
 // ── Tag editor modal ───────────────────────────────────────
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { useStore } from '../../useStore.jsx'
+import { useStore } from '../../store/context.js'
 
 const COLORS = ['#6d28d9','#4f46e5','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#06b6d4','#84cc16']
 

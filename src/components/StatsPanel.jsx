@@ -1,6 +1,6 @@
 // ── Statistics panel ───────────────────────────────────────
-import { useMemo } from 'react'
-import { useStore } from '../useStore.jsx'
+import { useMemo, useState } from 'react'
+import { useStore } from '../store/context.js'
 
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
@@ -8,9 +8,10 @@ export const StatsPanel = () => {
   const { state } = useStore()
   const { tasks } = state
 
+  const [now] = useState(() => Date.now())
+
   const stats = useMemo(() => {
-    const now = Date.now()
-    const weekStart = new Date()
+    const weekStart = new Date(now)
     weekStart.setDate(weekStart.getDate() - weekStart.getDay())
     weekStart.setHours(0, 0, 0, 0)
 
@@ -28,7 +29,7 @@ export const StatsPanel = () => {
 
     // Streak
     let streak = 0
-    const today = new Date()
+    const today = new Date(now)
     today.setHours(0, 0, 0, 0)
     for (let i = 0; i < 365; i++) {
       const d = new Date(today)
@@ -51,7 +52,7 @@ export const StatsPanel = () => {
     const maxCount = Math.max(...completedByDay, 1)
 
     return { completedByDay, completionRate, streak, timeThisWeek, maxDay: DAY_NAMES[maxIdx], maxCount, completedThisWeek: completedThisWeek.length }
-  }, [tasks])
+  }, [tasks, now])
 
   const formatTime = (ms) => {
     const h = Math.floor(ms / 3600000)

@@ -1,7 +1,7 @@
 // ── Bulk actions bar ───────────────────────────────────────
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { CheckCircle2, Trash2, FolderInput, Tag, X } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
 
 export const BulkActionsBar = () => {
   const { state, dispatch, bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag } = useStore()

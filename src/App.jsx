@@ -1,6 +1,7 @@
 // ── App root ───────────────────────────────────────────────
 import { useRef, useState, useMemo, useEffect } from 'react'
-import { StoreProvider, useStore } from './useStore.jsx'
+import { StoreProvider } from './useStore.jsx'
+import { useStore } from './store/context.js'
 import { useHotkeys } from './hooks/useHotkeys.js'
 import { useNotifications } from './hooks/useNotifications.js'
 
@@ -42,14 +43,21 @@ const AppInner = () => {
     return () => navigator.serviceWorker.removeEventListener('message', handler)
   }, [dispatch])
 
+  // ── Programmatic view switch (used by browser checks and OS shortcuts)
+  useEffect(() => {
+    const onSetView = (e) => { if (typeof e.detail === 'string') dispatch({ type: 'SET_VIEW', view: e.detail }) }
+    window.addEventListener('todos:set-view', onSetView)
+    return () => window.removeEventListener('todos:set-view', onSetView)
+  }, [dispatch])
+
   // ── Hotkeys ──────────────────────────────────────────────
   const hotkeys = useMemo(() => [
     { key: 'n',  ctrl: false, shift: false, handler: () => quickAddRef.current?.focus() },
     { key: '/',  ctrl: false, shift: false, handler: () => window.dispatchEvent(new CustomEvent('focus-search')) },
     { key: '?',  ctrl: false, shift: false, handler: () => setShowShortcuts(true) },
     { key: 'k',  ctrl: true,  shift: false, handler: () => setCommandPalette(true) },
-    { key: 'z',  ctrl: true,  shift: false, handler: () => undo(), allowInInput: true },
-    { key: 'z',  ctrl: true,  shift: true,  handler: () => redo(), allowInInput: true },
+    { key: 'z',  ctrl: true,  shift: false, handler: () => undo() },
+    { key: 'z',  ctrl: true,  shift: true,  handler: () => redo() },
     { key: 'Escape', ctrl: false, shift: false, handler: () => {
         if (showShortcuts) { setShowShortcuts(false); return }
         if (showCommandPalette) { setCommandPalette(false); return }
@@ -62,7 +70,7 @@ const AppInner = () => {
     { key: '3', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'upcoming' }) },
     { key: '4', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'all' }) },
     { key: 'f', ctrl: false, shift: false, handler: () => setFocusMode(v => !v) },
-    { key: 'F', ctrl: false, shift: false, handler: () => setFocusMode(v => !v) },
+    { key: 'F', ctrl: false, shift: true,  handler: () => setFocusMode(v => !v) },
   ], [dispatch, undo, redo, showShortcuts, showCommandPalette, focusMode, state.detailOpen])
 
   useHotkeys(hotkeys)

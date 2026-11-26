@@ -1,7 +1,9 @@
 // ── Task row ───────────────────────────────────────────────
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
+import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
+import { useElapsed } from '../hooks/useElapsed.js'
 
 const PRIORITY_COLORS = ['transparent', '#3b82f6', '#eab308', '#ef4444']
 
@@ -15,11 +17,11 @@ const formatDuration = (ms) => {
 
 const formatDate = (d) => {
   if (!d) return null
-  const today = new Date().toISOString().slice(0, 10)
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+  const today = todayISO()
+  const tomorrow = addDaysISO(1)
   if (d === today) return 'Today'
   if (d === tomorrow) return 'Tomorrow'
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return parseLocalISO(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export const TaskRow = ({
@@ -45,23 +47,11 @@ export const TaskRow = ({
   const subtasks    = state.tasks.filter(t => t.parentId === task.id && !t.completed)
   const hasSubtasks = subtasks.length > 0
 
-  const today    = new Date().toISOString().slice(0, 10)
+  const today    = todayISO()
   const isOverdue = task.dueDate && task.dueDate < today && !task.completed
   const isTimerRunning = task.timerStartedAt != null
 
-  const [elapsed, setElapsed] = useState(0)
-  useEffect(() => {
-    if (!isTimerRunning) { setElapsed(0); return }
-    const tick = () => setElapsed(Date.now() - task.timerStartedAt)
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [isTimerRunning, task.timerStartedAt])
-
-  // Keep titleVal in sync when task changes externally
-  useEffect(() => {
-    if (!editingTitle) setTitleVal(task.title)
-  }, [task.title, editingTitle])
+  const elapsed = useElapsed(task.timerStartedAt)
 
   const handleCheck = useCallback(async (e) => {
     e.stopPropagation()
@@ -196,7 +186,7 @@ export const TaskRow = ({
             />
           ) : (
             <span
-              onDoubleClick={e => { e.stopPropagation(); setEditingTitle(true) }}
+              onDoubleClick={e => { e.stopPropagation(); setTitleVal(task.title); setEditingTitle(true) }}
               style={{
                 color: task.completed ? 'var(--text-4)' : 'var(--text-1)',
                 textDecoration: task.completed ? 'line-through' : 'none',

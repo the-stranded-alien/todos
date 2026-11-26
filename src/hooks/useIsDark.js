@@ -19,5 +19,5 @@ export const useIsDark = () => {
 
 export const toggleDark = () => {
   const isDark = document.documentElement.classList.toggle('dark')
-  localStorage.setItem('theme', isDark ? 'dark' : 'light')
+  try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch { /* ignore */ }
 }

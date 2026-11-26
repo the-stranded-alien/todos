@@ -1,7 +1,8 @@
 // ── Calendar view ──────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
+import { todayISO } from '../utils/dates.js'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -16,7 +17,7 @@ export const CalendarView = () => {
 
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
 
   // Count tasks per day
   const tasksByDay = useMemo(() => {

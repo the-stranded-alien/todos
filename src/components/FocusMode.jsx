@@ -1,7 +1,7 @@
 // ── Focus mode ─────────────────────────────────────────────
 import { useMemo, useCallback } from 'react'
 import { X, CheckCircle2 } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
 
 export const FocusMode = ({ onClose }) => {
   const { state, completeTask } = useStore()

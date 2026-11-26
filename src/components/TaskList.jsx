@@ -1,7 +1,8 @@
 // ── Task list ──────────────────────────────────────────────
 import { useMemo, useState, useCallback, useRef } from 'react'
 import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
+import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { TaskRow } from './TaskRow.jsx'
 import { QuickAdd } from './QuickAdd.jsx'
 
@@ -46,10 +47,8 @@ export const TaskList = ({ quickAddRef }) => {
   const [draggingId, setDraggingId] = useState(null)
   const dragRef = useRef(null)
 
-  const today = new Date().toISOString().slice(0, 10)
-  const in7 = new Date()
-  in7.setDate(in7.getDate() + 7)
-  const in7str = in7.toISOString().slice(0, 10)
+  const today = todayISO()
+  const in7str = addDaysISO(7)
 
   // View title
   const viewTitle = useMemo(() => {
@@ -179,7 +178,7 @@ export const TaskList = ({ quickAddRef }) => {
 
   const formatGroupDate = (d) => {
     if (d === 'No date') return 'No date'
-    const date = new Date(d + 'T00:00:00')
+    const date = parseLocalISO(d)
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
   }
 

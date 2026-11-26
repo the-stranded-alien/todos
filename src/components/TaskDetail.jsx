@@ -4,10 +4,12 @@ import {
   X, Trash2, Play, Square, Calendar, Flag, Tag, Folder, RotateCcw,
   Plus, Eye, EyeOff, ChevronDown
 } from 'lucide-react'
-import { useStore } from '../useStore.jsx'
+import { useStore } from '../store/context.js'
 import { getTaskHistory } from '../db.js'
 import { ConfirmDelete } from './Modals/ConfirmDelete.jsx'
 import { scheduleNotification } from '../hooks/useNotifications.js'
+import { useElapsed } from '../hooks/useElapsed.js'
+import { renderMarkdown } from '../utils/markdown.js'
 
 const PRIORITY_OPTIONS = [
   { value: 0, label: 'None',   color: 'var(--text-4)' },
@@ -28,26 +30,6 @@ const formatDuration = (ms) => {
   return `${s}s`
 }
 
-// Simple markdown renderer
-const renderMarkdown = (text) => {
-  if (!text) return ''
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(?!<[hbulip])(.+)$/gm, '<p>$1</p>')
-    .replace(/---/g, '<hr/>')
-}
-
 export const TaskDetail = ({ onClose }) => {
   const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask } = useStore()
   const task = state.tasks.find(t => t.id === state.selectedTaskId)
@@ -60,22 +42,18 @@ export const TaskDetail = ({ onClose }) => {
   const [showTagDropdown, setShowTagDropdown] = useState(false)
 
   const isTimerRunning = task?.timerStartedAt != null
-  const [elapsed, setElapsed] = useState(0)
+  const elapsed = useElapsed(task?.timerStartedAt ?? null)
+  const taskId = task?.id
+  const taskUpdatedAt = task?.updatedAt
 
   useEffect(() => {
-    if (!isTimerRunning || !task) { setElapsed(0); return }
-    const tick = () => setElapsed(Date.now() - task.timerStartedAt)
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [isTimerRunning, task?.timerStartedAt])
-
-  useEffect(() => {
-    if (!task) return
-    getTaskHistory(task.id).then(h => {
-      setHistory(h.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10))
+    if (!taskId) return
+    let alive = true
+    getTaskHistory(taskId).then(h => {
+      if (alive) setHistory(h.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10))
     })
-  }, [task?.id, task?.updatedAt])
+    return () => { alive = false }
+  }, [taskId, taskUpdatedAt])
 
   const subtasks = useMemo(() =>
     task ? state.tasks.filter(t => t.parentId === task.id) : []
@@ -90,18 +68,18 @@ export const TaskDetail = ({ onClose }) => {
     await deleteTask(task.id)
     setShowConfirmDelete(false)
     onClose()
-  }, [task?.id, deleteTask, onClose])
+  }, [task, deleteTask, onClose])
 
   const handleAddSubtask = useCallback(async (e) => {
     if (e.key !== 'Enter' || !newSubtask.trim()) return
     await createTask({ title: newSubtask.trim(), parentId: task.id, projectId: task.projectId, order: Date.now() })
     setNewSubtask('')
-  }, [newSubtask, task?.id, task?.projectId, createTask])
+  }, [newSubtask, task, createTask])
 
   const handleTimerToggle = useCallback(async () => {
     if (isTimerRunning) await stopTimer(task.id)
     else await startTimer(task.id)
-  }, [isTimerRunning, task?.id, startTimer, stopTimer])
+  }, [isTimerRunning, task, startTimer, stopTimer])
 
   const handleScheduleNotification = useCallback(() => {
     if (task) scheduleNotification(task)
