@@ -37,6 +37,7 @@ export const HELP_SECTIONS = [
       'Task menu: right-click a task or press Shift+F10 for Open details, Rename, Duplicate, Priority and Delete.',
       'Subtasks: add them in the task’s details. Deleting a task deletes its subtasks too (Undo brings them back).',
       'Repeat: daily, weekly or monthly. Completing a repeating task creates the next one.',
+      'Suggest subtasks (in a task’s details) breaks a task into steps with the AI built into Chrome, on your device: nothing is sent anywhere. The first use may download the model. Elsewhere, or while it’s slow, “Use quick version” turns the lines in your notes into steps. Turn it off in Settings → Features → Hide AI features.',
       'Select several tasks with their checkboxes to complete, move, tag or delete them at once.',
       'Drag tasks to reorder them while sorted by “Manual order”.',
     ],

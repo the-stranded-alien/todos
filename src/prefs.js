@@ -18,6 +18,7 @@ export const DEFAULT_PREFS = {
   voice: true,
   timers: true,
   reminders: false,
+  hideAI: false,
 }
 
 export const prefersReducedMotion = () => {

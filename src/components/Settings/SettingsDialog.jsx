@@ -125,6 +125,12 @@ const Features = ({ prefs }) => {
         disabled={!notifySupported}
         onChange={toggleReminders}
       />
+      <Switch
+        label="Hide AI features"
+        description="Removes “Suggest subtasks”. When shown, it runs on your device with Chrome’s built-in AI and nothing is sent anywhere."
+        checked={prefs.hideAI}
+        onChange={v => setPrefs({ hideAI: v })}
+      />
     </Section>
   )
 }

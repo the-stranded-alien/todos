@@ -482,6 +482,13 @@ export const StoreProvider = ({ children }) => {
     return ids.length
   }, [state.bulkSelected, grouped, updateTask])
 
+  // Several subtasks at once (e.g. suggestions): one undo step
+  const addSubtasks = useCallback((parent, titles) => grouped(async () => {
+    let order = Date.now()
+    for (const title of titles) await createTask({ title, parentId: parent.id, projectId: parent.projectId, order: order++ })
+    return titles.length
+  }), [grouped, createTask])
+
   const clearCompleted = useCallback(async () => {
     const done = (await db.getTasks()).filter(t => t.completed && !t.parentId)
     let n = 0
@@ -509,7 +516,7 @@ export const StoreProvider = ({ children }) => {
     startTimer, stopTimer,
     createProject, updateProject, deleteProject,
     createTag, updateTag, deleteTag,
-    bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted,
+    bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,
     undo, redo,
     importData, reloadAll,
   }

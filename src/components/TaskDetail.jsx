@@ -7,6 +7,7 @@ import {
 import { useStore } from '../store/context.js'
 import { getTaskHistory } from '../db.js'
 import { DraftText } from './ui/DraftText.jsx'
+import { SuggestSubtasks } from './SuggestSubtasks.jsx'
 import { usePrefs } from '../prefs.js'
 import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
@@ -447,6 +448,7 @@ export const TaskDetail = ({ onClose }) => {
               style={{ fontSize: '.825rem' }}
             />
           </div>
+          {!prefs.hideAI && !task.parentId && <SuggestSubtasks key={task.id} task={task} />}
         </div>
 
         {/* Activity */}

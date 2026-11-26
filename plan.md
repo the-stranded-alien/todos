@@ -144,12 +144,13 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - **Migration:** existing installs run the old cache-first worker (bug 8). Their old page still registers `/sw.js`, which browsers fetch from the network, so the new worker installs, deletes `todos-v1`, and shows "Todos was updated — Reload".
 - **Verified (`e2e/pwa.mjs`, real Chrome profile):** manifest has **0 parse errors** and **0 installability errors** (via DevTools Protocol); the worker controls the page and precaches every file in `precache-manifest.json`; **offline reload works**, including the font and adding a task; a simulated new deploy shows the update toast with Reload and deletes old caches (incl. the v1 `todos-v1`); manifest shortcuts and the share target work and clean the URL. Regression: 55 tests, 32/32 interactions, axe sweep 0, contrast 0.
 
-### Batch 10 — On-device AI (optional, feature-detected) ⬜
-- [ ] "Break into subtasks" in the detail panel via Chrome `LanguageModel`; `availability()`, download progress, `AbortController`
-- [ ] Non-AI fallback (split notes lines / bullet list into subtasks)
-- [ ] "Unsupported" notice with requirements instead of hiding silently; "Hide AI features" switch removes every AI button
-- [ ] UI says "Runs on your device — nothing is sent anywhere"
-- [ ] Settings → Features: "Hide AI features" switch (moved here from Batch 8)
+### Batch 10 — On-device AI (optional, feature-detected) ✅
+- [x] "Suggest subtasks" in the detail panel via Chrome `LanguageModel` (Prompt API): `availability()`, first-run download progress, `AbortController` (Cancel, and leaving the task cancels), JSON schema `responseConstraint`, step count scaled to the input size, results as a checklist you choose from, added as **one undo step**
+- [x] Non-AI fallback ("Use quick version": list items or lines in the notes, then sentences, then a compound title), offered when AI is unsupported, while downloading, while thinking, and after errors
+- [x] "Unsupported" notice with requirements instead of hiding silently; "Hide AI features" switch removes every AI button
+- [x] UI says "Runs on your device — nothing is sent anywhere"
+- [x] Settings → Features: "Hide AI features" switch (moved here from Batch 8)
+- **Verified:** 8 unit tests for the fallback and output parsing. In real Chrome 158 (headless), `LanguageModel` exists but reports `unavailable` (no model on this machine), so the browser check covered the requirements notice → quick version → pick 2 of 3 → one Undo removes both. A second check **mocks `LanguageModel`** to cover the first-run download (progress bar and %), "Thinking…", the privacy line, a prompt that includes the task and a schema, adding 3, Cancel during the download (no prompt runs afterwards), and "Hide AI features" removing the button. Axe 0 with the panel open at 1280 and 390. **Not verified:** a real model download and answer, which needs desktop Chrome with the model installed — please try it once on your machine.
 
 ### Batch 11 — Final verification sweep ⬜
 - [ ] Browser sweep: every view × every theme × high contrast — axe, console errors, icon scan, horizontal scroll, header overlap at 4 widths
@@ -194,4 +195,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 6 — Layout & responsive | 2026-11-26 | `4c2aa9d` | lint ✔ · 31 tests ✔ · build ✔ · 22/22 interactions ✔ · 0 problems at 4 widths |
 | 7 — Never lose data | 2026-11-26 | `4e5fe0f` | lint ✔ · 55 tests ✔ · build ✔ · 28/28 interactions ✔ · axe 0 |
 | 8 — Settings & Help | 2026-11-26 | `1b12329` | lint ✔ · 55 tests ✔ · build ✔ · 32/32 interactions ✔ · axe 0 incl. Settings/Help |
-| 9 — PWA & platform | 2026-11-26 | _see git log_ | lint ✔ · 55 tests ✔ · build ✔ · 6/6 PWA checks ✔ · 32/32 interactions ✔ · axe 0 |
+| 9 — PWA & platform | 2026-11-26 | `571f7b3` | lint ✔ · 55 tests ✔ · build ✔ · 6/6 PWA checks ✔ · 32/32 interactions ✔ · axe 0 |
+| 10 — On-device AI | 2026-11-26 | _see git log_ | lint ✔ · 63 tests ✔ · build ✔ · 34/34 interactions ✔ (AI path mocked) · axe 0 |

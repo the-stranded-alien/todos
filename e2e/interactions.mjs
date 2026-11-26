@@ -376,6 +376,90 @@ await check('help: search filters topics and highlights matches', async () => {
   await page.keyboard.press('Escape')
 })
 
+// ── On-device AI ─────────────────────────────────────────
+await check('suggest subtasks without built-in AI: notice, quick version, one undo step', async () => {
+  await page.mouse.click(700, 700)
+  await quick.fill('Plan the trip'); await quick.press('Enter')
+  await page.locator('.task-title', { hasText: 'Plan the trip' }).click()
+  const notes = page.locator('textarea[aria-labelledby="detail-notes-label"]')
+  await notes.fill('- Book flights\n- Reserve hotel\n- Pack bags'); await notes.blur()
+  await page.getByRole('button', { name: 'Suggest subtasks' }).click()
+  const box = page.getByRole('group', { name: 'Suggested subtasks' })
+  const avail = await page.evaluate(async () => ('LanguageModel' in self) ? await self.LanguageModel.availability() : 'unsupported')
+  if (avail === 'unsupported' || avail === 'unavailable') {
+    await box.getByText('Chrome 138 or later').waitFor()
+    await box.getByRole('button', { name: 'Use quick version' }).click()
+  } else {
+    await box.getByRole('button', { name: 'Use quick version' }).click()
+  }
+  await box.getByRole('checkbox', { name: 'Reserve hotel' }).uncheck()
+  await box.getByRole('button', { name: 'Add 2 subtasks' }).click()
+  const panel = page.getByRole('complementary', { name: 'Task details' })
+  await panel.getByText('Subtasks (2)').waitFor()
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await panel.getByText('Subtasks (0)').waitFor({ timeout: 2000 })
+  await page.getByRole('button', { name: 'Close details' }).click()
+})
+
+await check('suggest subtasks with on-device AI (mocked): download progress, results, cancel', async () => {
+  const aiCtx = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  await aiCtx.addInitScript(() => {
+    window.__prompts = []
+    self.LanguageModel = {
+      availability: async () => 'downloadable',
+      create: async ({ monitor, signal }) => {
+        const target = new EventTarget()
+        monitor?.(target)
+        for (const loaded of [0.25, 0.6, 1]) {
+          await new Promise(r => setTimeout(r, 250))
+          if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
+          target.dispatchEvent(Object.assign(new Event('downloadprogress'), { loaded }))
+        }
+        return {
+          prompt: async (text, opts) => {
+            window.__prompts.push({ text, hasSchema: !!opts?.responseConstraint })
+            await new Promise(r => setTimeout(r, 300))
+            return JSON.stringify(['Pick a date', 'Invite friends', 'Order food'])
+          },
+          destroy() {},
+        }
+      },
+    }
+  })
+  const p = await aiCtx.newPage()
+  await p.goto(BASE)
+  const q = p.getByRole('textbox', { name: 'Quick add task' })
+  await q.waitFor(); await q.fill('Host a dinner party'); await q.press('Enter')
+  await p.locator('.task-title', { hasText: 'Host a dinner' }).click()
+  await p.getByRole('button', { name: 'Suggest subtasks' }).click()
+  const box = p.getByRole('group', { name: 'Suggested subtasks' })
+  await box.getByRole('progressbar', { name: 'Model download' }).waitFor()
+  await box.getByText(/Downloading the on-device model.*%/).waitFor()
+  await box.getByText('Thinking…').waitFor({ timeout: 3000 })
+  await box.getByRole('checkbox', { name: 'Invite friends' }).waitFor({ timeout: 3000 })
+  assert((await box.textContent()).includes('Nothing is sent anywhere'), 'privacy note missing')
+  const prompts = await p.evaluate(() => window.__prompts)
+  assert(prompts.length === 1 && prompts[0].hasSchema && prompts[0].text.includes('Host a dinner party'), 'prompt: ' + JSON.stringify(prompts))
+  await box.getByRole('button', { name: 'Add 3 subtasks' }).click()
+  await p.getByText('Subtasks (3)').waitFor()
+  // cancel during download stops the work
+  await p.locator('.task-title', { hasText: 'Pick a date' }).click()
+  await q.fill('Second task'); await q.press('Enter')
+  await p.locator('.task-title', { hasText: 'Second task' }).click()
+  await p.getByRole('button', { name: 'Suggest subtasks' }).click()
+  await p.getByRole('group', { name: 'Suggested subtasks' }).getByRole('button', { name: 'Cancel' }).click()
+  await p.waitForTimeout(1200)
+  assert(await p.getByRole('group', { name: 'Suggested subtasks' }).count() === 0, 'still busy after cancel')
+  assert((await p.evaluate(() => window.__prompts.length)) === 1, 'prompt ran after cancel')
+  // Hide AI features removes the button
+  await p.keyboard.press('Control+,')
+  await p.getByRole('tab', { name: 'Features' }).click()
+  await p.getByRole('switch', { name: /Hide AI features/ }).check()
+  await p.keyboard.press('Escape')
+  assert(await p.getByRole('button', { name: 'Suggest subtasks' }).count() === 0, 'AI button still shown')
+  await aiCtx.close()
+})
+
 // ── Phone width ──────────────────────────────────────────
 const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true })
 phone.on('pageerror', e => errors.push(String(e)))

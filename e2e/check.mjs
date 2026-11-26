@@ -123,6 +123,11 @@ for (const width of WIDTHS) {
   if (!process.env.SKIP_STATES) {
     const STATES = [
       ['detail panel', async () => { await page.locator('.task-title').first().click() }, async () => { await page.keyboard.press('Escape') }],
+      ['suggest subtasks', async () => {
+        await page.locator('.task-title').first().click()
+        await page.getByRole('button', { name: 'Suggest subtasks' }).click()
+        await page.getByRole('group', { name: 'Suggested subtasks' }).getByRole('button').first().waitFor()
+      }, async () => { await page.keyboard.press('Escape') }],
       ['filters open', async () => { await page.getByRole('button', { name: 'Filters' }).click() }, async () => { await page.getByRole('button', { name: 'Filters' }).click() }],
       ['command palette', async () => { await page.keyboard.press('Control+k'); await page.keyboard.type('go') }, async () => { await page.keyboard.press('Escape') }],
       ['shortcuts dialog', async () => { await page.keyboard.press('?') }, async () => { await page.keyboard.press('Escape') }],

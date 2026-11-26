@@ -899,3 +899,14 @@ html.high-contrast .switch { box-shadow: inset 0 0 0 1px var(--text-1); }
 .help-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .help-list li { font-size: .86rem; color: var(--text-2); line-height: 1.5; }
 mark { background: color-mix(in srgb, var(--warning) 30%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* ── Suggest subtasks ─────────────────────────────────────── */
+.suggest { margin-top: 6px; }
+.suggest-btn { font-size: .8rem; padding: 5px 10px; --feat: var(--accent-2); }
+.suggest-open { padding: 10px; border-radius: 12px; border: 1px solid var(--accent-border); background: color-mix(in srgb, var(--accent) 5%, var(--bg-card)); }
+.suggest-note { font-size: .78rem; color: var(--text-2); line-height: 1.45; margin: 4px 0 8px; }
+.suggest-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.suggest-actions .btn { font-size: .8rem; padding: 5px 10px; }
+.suggest-list { list-style: none; margin: 0 0 4px; padding: 0; }
+.suggest-list label { display: flex; align-items: flex-start; gap: 8px; padding: 4px 2px; font-size: .84rem; color: var(--text-1); cursor: pointer; }
+.suggest-dot { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 99px; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
