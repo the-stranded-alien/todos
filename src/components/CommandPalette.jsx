@@ -1,5 +1,5 @@
 // ── Command palette ────────────────────────────────────────
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect, useId } from 'react'
 import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { Dialog } from './ui/Dialog.jsx'
@@ -99,83 +99,89 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
     }
   }, [onClose, onNewProject, onNewTag, quickAddRef, dispatch])
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setSelected(s => Math.min(s + 1, items.length - 1)) }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); setSelected(s => Math.max(s - 1, 0)) }
-    if (e.key === 'Enter')     { e.preventDefault(); if (items[selected]) execute(items[selected]) }
-  }, [items, selected, execute])
-
-  // Group items
-  const groups = useMemo(() => {
+  // Group items; `ordered` is the display order used for highlighting and Enter
+  const { groups, ordered } = useMemo(() => {
     const g = {}
-    for (const item of items) {
-      if (!g[item.group]) g[item.group] = []
-      g[item.group].push(item)
-    }
-    return g
+    for (const item of items) (g[item.group] ??= []).push(item)
+    return { groups: Object.entries(g), ordered: Object.values(g).flat() }
   }, [items])
 
-  let globalIdx = 0
+  const listId = useId()
+  const optionId = (i) => `${listId}-opt-${i}`
+  const listRef = useRef(null)
+
+  // Keep the highlighted option in view
+  useEffect(() => {
+    listRef.current?.querySelector(`#${CSS.escape(optionId(selected))}`)?.scrollIntoView({ block: 'nearest' })
+  })
+
+  const handleKeyDown = (e) => {
+    const last = ordered.length - 1
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelected(s => (s >= last ? 0 : s + 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSelected(s => (s <= 0 ? last : s - 1)) }
+    else if (e.key === 'Home' && e.ctrlKey) { e.preventDefault(); setSelected(0) }
+    else if (e.key === 'End' && e.ctrlKey) { e.preventDefault(); setSelected(last) }
+    else if (e.key === 'Enter') { e.preventDefault(); if (ordered[selected]) execute(ordered[selected]) }
+  }
+
+  let idx = -1
 
   return (
     <Dialog title="Command palette" onClose={onClose} hideHeader placement="top" size="md" initialFocus={inputRef} className="overflow-hidden">
-        {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
-          <Search size={17} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={e => { setQuery(e.target.value); setSelected(0) }}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a command or search…"
-            style={{
-              flex: 1, background: 'none', border: 'none', outline: 'none',
-              color: 'var(--text-1)', fontFamily: 'var(--font-sans)', fontSize: '1rem',
-            }}
-            aria-label="Command search"
-          />
-          <kbd className="kbd">Esc</kbd>
-        </div>
+      <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+        <Search size={17} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setSelected(0) }}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a command or search…"
+          className="palette-input"
+          role="combobox"
+          aria-label="Search commands, views and tasks"
+          aria-expanded="true"
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={ordered.length ? optionId(selected) : undefined}
+        />
+        <kbd className="kbd">Esc</kbd>
+      </div>
 
-        {/* Results */}
-        <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-          {Object.entries(groups).map(([group, groupItems]) => (
-            <div key={group}>
-              <div style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 700, padding: '8px 16px 4px', letterSpacing: '.05em' }}>
-                {group.toUpperCase()}
-              </div>
-              {groupItems.map((item) => {
-                const idx = globalIdx++
-                const isSelected = idx === selected
-                const Ic = item.icon
-                return (
-                  <button
-                    key={item.id}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left"
-                    style={{
-                      background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: isSelected ? 'var(--accent)' : 'var(--text-2)',
-                      fontSize: '.875rem',
-                    }}
-                    onClick={() => execute(item)}
-                    onMouseEnter={() => setSelected(idx)}
-                  >
-                    <Ic size={15} style={{ flexShrink: 0 }} />
-                    <span>{item.label}</span>
-                    {isSelected && <kbd style={{ marginLeft: 'auto', color: 'var(--text-4)', fontSize: '.7rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>↵</kbd>}
-                  </button>
-                )
-              })}
+      <div ref={listRef} id={listId} role="listbox" aria-label="Results" className="palette-list">
+        {groups.map(([group, groupItems]) => (
+          <div key={group} role="group" aria-labelledby={`${listId}-${group.replace(/\W/g, '')}`}>
+            <div id={`${listId}-${group.replace(/\W/g, '')}`} role="presentation" className="menu-heading" style={{ padding: '8px 16px 4px' }}>
+              {group}
             </div>
-          ))}
-          {items.length === 0 && (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-4)', fontSize: '.875rem' }}>
-              No results for "{query}"
-            </div>
-          )}
-        </div>
+            {groupItems.map((item) => {
+              const i = ++idx
+              const isSelected = i === selected
+              const Ic = item.icon
+              return (
+                <div
+                  key={item.id}
+                  id={optionId(i)}
+                  role="option"
+                  aria-selected={isSelected}
+                  className="palette-option"
+                  onClick={() => execute(item)}
+                  onMouseMove={() => { if (!isSelected) setSelected(i) }}
+                >
+                  <Ic size={15} />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {isSelected && <kbd className="kbd" aria-hidden="true">↵</kbd>}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+        {ordered.length === 0 && (
+          <div role="presentation" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)', fontSize: '.875rem' }}>
+            No results for “{query}”. Try a shorter word.
+          </div>
+        )}
+      </div>
+      <p className="sr-only" aria-live="polite">{query ? `${ordered.length} results` : ''}</p>
     </Dialog>
   )
 }

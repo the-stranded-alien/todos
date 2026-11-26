@@ -34,14 +34,15 @@ const seed = async (page) => {
     await input.fill(t); await input.press('Enter')
   }
   // one completed task
-  await page.getByRole('button', { name: 'Mark complete' }).last().click()
+  await page.getByRole('button', { name: /^Complete “/ }).last().click()
   await page.waitForTimeout(500)
 }
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true })
 const failures = []
 for (const width of WIDTHS) {
-  const ctx = await browser.newContext({ viewport: { width, height: 860 }, reducedMotion: 'reduce' })
+  const height = 860
+  const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce' })
   const page = await ctx.newPage()
   const errors = []
   page.on('pageerror', e => errors.push(String(e)))
@@ -81,6 +82,40 @@ for (const width of WIDTHS) {
       await page.screenshot({ path: `${OUT}/${width}-${theme}-${view}.png` })
       if (hscroll) failures.push(`${tag}: horizontal scroll`)
       for (const v of res) failures.push(`${tag}: axe ${v.id} (${v.impact}) ×${v.n} e.g. ${v.sample}`)
+    }
+  }
+  // Axe on open states: panels, dialogs and menus (after entrance animations)
+  if (!process.env.SKIP_STATES) {
+    const STATES = [
+      ['detail panel', async () => { await page.locator('.task-title').first().click() }, async () => { await page.keyboard.press('Escape') }],
+      ['filters open', async () => { await page.getByRole('button', { name: 'Filters' }).click() }, async () => { await page.getByRole('button', { name: 'Filters' }).click() }],
+      ['command palette', async () => { await page.keyboard.press('Control+k'); await page.keyboard.type('go') }, async () => { await page.keyboard.press('Escape') }],
+      ['shortcuts dialog', async () => { await page.keyboard.press('?') }, async () => { await page.keyboard.press('Escape') }],
+      ['project dialog', async () => { await page.getByRole('button', { name: 'New project' }).click() }, async () => { await page.keyboard.press('Escape') }],
+      ['header menu', async () => { await page.getByRole('button', { name: 'Download and restore' }).click() }, async () => { await page.keyboard.press('Escape') }],
+      ['task context menu', async () => { await page.locator('.task-row').first().click({ button: 'right' }) }, async () => { await page.keyboard.press('Escape') }],
+      ['focus mode', async () => { await page.keyboard.press('f') }, async () => { await page.keyboard.press('Escape') }],
+    ]
+    for (const theme of THEMES) {
+      const [id, hc] = theme.split('+')
+      await page.evaluate(p => localStorage.setItem('todos-prefs', JSON.stringify(p)), { theme: id, extraThemes: true, highContrast: hc === 'hc' })
+      await page.reload()
+      await page.getByRole('textbox', { name: 'Quick add task' }).waitFor()
+      for (const [name, open, close] of STATES) {
+        if (width < 700 && name === 'detail panel') continue
+        await page.mouse.click(5, height - 5)
+        await open()
+        await page.waitForTimeout(450)
+        await page.addScriptTag({ content: AXE })
+        const res = await page.evaluate(async () => (await window.axe.run(document, { resultTypes: ['violations'] })).violations.map(v => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes[0]?.target?.join(' ') })))
+        const tag = `${width}/${theme}/[${name}]`
+        if (name === 'command palette' || name === 'project dialog') await page.screenshot({ path: `${OUT}/${width}-${theme}-${name.replace(/ /g, '-')}.png` })
+        for (const v of res) failures.push(`${tag}: axe ${v.id} (${v.impact}) ×${v.n} e.g. ${v.sample}`)
+        const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+        if (hscroll) failures.push(`${tag}: horizontal scroll`)
+        await close()
+        await page.waitForTimeout(150)
+      }
     }
   }
   for (const e of errors) failures.push(`${width}: console ${e}`)

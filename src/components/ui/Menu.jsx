@@ -6,6 +6,10 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { createPortal } from 'react-dom'
 import { IconButton } from './IconButton.jsx'
 
+// Menus are position: fixed, so they can live inside <main> (no transforms
+// or filters there) and stay within a landmark for assistive tech.
+const overlayRoot = () => document.querySelector('main') ?? document.body
+
 // items: { label, icon, onSelect, danger, disabled, kbd, checked } | { separator: true } | { heading }
 const MenuList = ({ items, onClose, anchor, point, placement = 'down', align = 'start', labelledBy, label, returnFocus }) => {
   const ref = useRef(null)
@@ -108,7 +112,7 @@ const MenuList = ({ items, onClose, anchor, point, placement = 'down', align = '
         )
       })}
     </div>,
-    document.body,
+    overlayRoot(),
   )
 }
 

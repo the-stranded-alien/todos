@@ -1,5 +1,6 @@
 // ── Focus mode ─────────────────────────────────────────────
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useRef } from 'react'
+import { useDialogKeys } from '../hooks/useDialogKeys.js'
 import { X, CheckCircle2 } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 
@@ -20,6 +21,10 @@ export const FocusMode = ({ onClose }) => {
     state.tasks.filter(t => !t.completed && !t.parentId).length
   , [state.tasks])
 
+  const doneRef = useRef(null)
+  const backRef = useRef(null)
+  useDialogKeys(onClose, { focus: () => (doneRef.current ?? backRef.current)?.focus() })
+
   const handleDone = useCallback(async () => {
     if (firstTask) await completeTask(firstTask.id)
   }, [firstTask, completeTask])
@@ -27,25 +32,28 @@ export const FocusMode = ({ onClose }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="focus-mode-title"
       style={{ background: 'var(--bg-app)' }}
     >
-      {/* Close */}
+      <h2 id="focus-mode-title" className="sr-only">Focus mode</h2>
       <button
+        type="button"
         className="btn btn-ghost absolute top-4 right-4"
         onClick={onClose}
-        aria-label="Exit focus mode"
       >
         <X size={20} /> Exit focus mode
       </button>
 
       {firstTask ? (
         <div className="anim-fade-in flex flex-col items-center gap-8 max-w-2xl w-full px-8">
-          <div style={{ color: 'var(--text-4)', fontSize: '.875rem' }}>
+          <div aria-live="polite" style={{ color: 'var(--text-3)', fontSize: '.875rem' }}>
             {remaining} task{remaining !== 1 ? 's' : ''} remaining
           </div>
 
           <div className="focus-frame" style={{ width: '100%' }}>
-            <div className="focus-mode-task">
+            <div className="focus-mode-task" id="focus-mode-task">
               {firstTask.title}
             </div>
           </div>
@@ -57,24 +65,26 @@ export const FocusMode = ({ onClose }) => {
           )}
 
           <button
+            ref={doneRef}
+            type="button"
             className="btn btn-primary"
             onClick={handleDone}
             style={{ padding: '14px 40px', fontSize: '1rem', borderRadius: 999 }}
-            aria-label="Mark task done and go to next"
+            aria-describedby="focus-mode-task"
           >
             <CheckCircle2 size={20} /> Done
           </button>
 
-          <p style={{ color: 'var(--text-4)', fontSize: '.8rem' }}>
-            Press <kbd style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px' }}>Esc</kbd> to exit
+          <p style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>
+            Press <kbd className="kbd">Esc</kbd> to exit
           </p>
         </div>
       ) : (
         <div className="anim-fade-in flex flex-col items-center gap-4">
           <CheckCircle2 size={64} style={{ color: 'var(--accent)' }} />
-          <h2 style={{ color: 'var(--text-1)', fontSize: '1.5rem', fontWeight: 700 }}>All done! 🎉</h2>
+          <p style={{ color: 'var(--text-1)', fontSize: '1.5rem', fontWeight: 700 }}>All done! <span aria-hidden="true">🎉</span></p>
           <p style={{ color: 'var(--text-3)' }}>You have no remaining tasks.</p>
-          <button className="btn btn-primary" onClick={onClose}>Back to tasks</button>
+          <button ref={backRef} type="button" className="btn btn-primary" onClick={onClose}>Back to tasks</button>
         </div>
       )}
     </div>

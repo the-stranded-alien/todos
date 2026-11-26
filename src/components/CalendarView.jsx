@@ -1,12 +1,19 @@
 // ── Calendar view ──────────────────────────────────────────
+// A real table: weekday column headers, one button per day (arrow keys
+// move between days), and task buttons that open the detail panel.
 import { useState, useMemo, useCallback } from 'react'
-import { ChevronLeft, ChevronRight } from '../icons.jsx'
+import { ChevronLeft, ChevronRight, Calendar } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
+import { focusTaskDetail } from '../utils/focus.js'
 import { IconButton } from './ui/IconButton.jsx'
+import { EmptyState } from './ui/EmptyState.jsx'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
 export const CalendarView = () => {
   const { state, dispatch } = useStore()
@@ -15,167 +22,152 @@ export const CalendarView = () => {
 
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()
-
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const today = todayISO()
 
-  // Count tasks per day
   const tasksByDay = useMemo(() => {
     const map = {}
     for (const t of state.tasks) {
-      if (t.dueDate) {
-        const [y, m, d] = t.dueDate.split('-').map(Number)
-        if (y === year && m === month + 1) {
-          if (!map[d]) map[d] = { total: 0, completed: 0, tasks: [] }
-          map[d].total++
-          if (t.completed) map[d].completed++
-          map[d].tasks.push(t)
-        }
-      }
+      if (!t.dueDate) continue
+      const [y, m, d] = t.dueDate.split('-').map(Number)
+      if (y === year && m === month + 1) (map[d] ??= []).push(t)
     }
     return map
   }, [state.tasks, year, month])
 
-  const selectedTasks = useMemo(() => {
-    if (!selectedDay) return []
-    return tasksByDay[selectedDay]?.tasks || []
-  }, [selectedDay, tasksByDay])
+  const selectedTasks = selectedDay ? tasksByDay[selectedDay] ?? [] : []
 
-  const prevMonth = useCallback(() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1)), [])
-  const nextMonth = useCallback(() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1)), [])
+  const goMonth = useCallback((delta) => {
+    setViewDate(d => new Date(d.getFullYear(), d.getMonth() + delta, 1))
+    setSelectedDay(null)
+  }, [])
+
+  const openTask = (id, viaKeyboard) => {
+    dispatch({ type: 'SELECT_TASK', id })
+    if (viaKeyboard) focusTaskDetail()
+  }
+
+  const onDayKeyDown = (e, day) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]
+    if (!step) return
+    const next = day + step
+    if (next < 1 || next > daysInMonth) return
+    e.preventDefault()
+    e.currentTarget.closest('table').querySelector(`[data-day="${next}"]`)?.focus()
+  }
 
   const cells = []
   for (let i = 0; i < firstDay; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
-
   const rows = []
   for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
 
   return (
-    <div className="flex-1 overflow-auto p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.2rem' }}>
+    <div className="flex-1 overflow-auto p-4 cal-view">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h1 id="cal-title" style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.3rem' }}>
           {MONTHS[month]} {year}
-        </h2>
-        <div className="flex gap-1">
-          <IconButton label="Previous month" icon={ChevronLeft} onClick={prevMonth} />
-          <button className="btn btn-ghost p-2" onClick={() => setViewDate(new Date())} style={{ fontSize: '.8rem' }}>Today</button>
-          <IconButton label="Next month" icon={ChevronRight} onClick={nextMonth} tooltipAlign="end" />
+        </h1>
+        <div className="flex items-center gap-1">
+          <IconButton label="Previous month" icon={ChevronLeft} onClick={() => goMonth(-1)} />
+          <button type="button" className="btn btn-ghost" style={{ fontSize: '.8rem' }} onClick={() => { setViewDate(new Date()); setSelectedDay(null) }}>Today</button>
+          <IconButton label="Next month" icon={ChevronRight} onClick={() => goMonth(1)} tooltipAlign="end" />
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7" style={{ background: 'var(--bg-surface)' }}>
-          {DAYS_OF_WEEK.map(d => (
-            <div key={d} style={{ textAlign: 'center', padding: '8px 4px', fontSize: '.75rem', fontWeight: 600, color: 'var(--text-4)' }}>
-              {d}
-            </div>
+      <table className="cal" aria-labelledby="cal-title">
+        <thead>
+          <tr>
+            {DAYS_OF_WEEK.map((d, i) => <th key={d} scope="col" abbr={DAY_NAMES[i]}>{d}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((day, di) => {
+                if (!day) return <td key={di} className="cal-empty" />
+                const date = iso(year, month, day)
+                const isToday = date === today
+                const isSelected = selectedDay === day
+                const list = tasksByDay[day] ?? []
+                const open = list.filter(t => !t.completed).length
+                return (
+                  <td key={di} data-selected={isSelected || undefined}>
+                    <button
+                      type="button"
+                      className="cal-day"
+                      data-day={day}
+                      data-today={isToday || undefined}
+                      aria-pressed={isSelected}
+                      aria-current={isToday ? 'date' : undefined}
+                      aria-label={`${DAY_NAMES[(firstDay + day - 1) % 7]}, ${MONTHS[month]} ${day}${list.length ? `, ${list.length} ${list.length === 1 ? 'task' : 'tasks'}` : ''}`}
+                      tabIndex={isSelected || (!selectedDay && (isToday || (day === 1 && !date.startsWith(today.slice(0, 7))))) ? 0 : -1}
+                      onClick={() => setSelectedDay(isSelected ? null : day)}
+                      onKeyDown={e => onDayKeyDown(e, day)}
+                    >
+                      <span className="cal-num">{day}</span>
+                      {open > 0 && <span className="cal-dot" aria-hidden="true">{open}</span>}
+                    </button>
+                    {list.length > 0 && (
+                      <ul className="cal-tasks">
+                        {list.slice(0, 3).map(t => (
+                          <li key={t.id}>
+                            <button
+                              type="button"
+                              className="cal-task"
+                              data-done={t.completed || undefined}
+                              title={t.title}
+                              tabIndex={-1}
+                              onClick={() => openTask(t.id)}
+                            >
+                              {t.title}
+                            </button>
+                          </li>
+                        ))}
+                        {list.length > 3 && (
+                          <li className="cal-more">+{list.length - 3} more</li>
+                        )}
+                      </ul>
+                    )}
+                  </td>
+                )
+              })}
+            </tr>
           ))}
-        </div>
+        </tbody>
+      </table>
 
-        {/* Day rows */}
-        {rows.map((row, ri) => (
-          <div key={ri} className="grid grid-cols-7" style={{ borderTop: '1px solid var(--border)' }}>
-            {row.map((day, di) => {
-              if (!day) return <div key={di} style={{ background: 'var(--bg-surface)', minHeight: 72, borderRight: di < 6 ? '1px solid var(--border-light)' : 'none' }} />
-              const isoDate = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-              const isToday = isoDate === today
-              const isSelected = selectedDay === day
-              const dayData = tasksByDay[day]
-
-              return (
-                <div
-                  key={di}
-                  onClick={() => setSelectedDay(isSelected ? null : day)}
-                  style={{
-                    minHeight: 72,
-                    padding: '6px',
-                    cursor: dayData ? 'pointer' : 'default',
-                    background: isSelected ? 'var(--accent-soft)' : 'var(--bg-card)',
-                    borderRight: di < 6 ? '1px solid var(--border-light)' : 'none',
-                    transition: 'background .1s',
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span style={{
-                      fontSize: '.8rem',
-                      fontWeight: isToday ? 700 : 400,
-                      color: isToday ? 'var(--on-accent)' : isSelected ? 'var(--accent)' : 'var(--text-2)',
-                      background: isToday ? 'var(--accent)' : 'transparent',
-                      borderRadius: '50%',
-                      width: 22,
-                      height: 22,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      {day}
+      {selectedDay && (
+        <section className="mt-4 anim-slide-up" aria-labelledby="cal-day-title">
+          <h2 id="cal-day-title" style={{ color: 'var(--text-2)', fontWeight: 600, marginBottom: 8, fontSize: '.95rem' }}>
+            {DAY_NAMES[(firstDay + selectedDay - 1) % 7]}, {MONTHS[month]} {selectedDay}
+          </h2>
+          {selectedTasks.length === 0 ? (
+            <EmptyState icon={Calendar} title="Nothing due this day." compact>Set a due date on a task to see it here.</EmptyState>
+          ) : (
+            <ul className="task-ul">
+              {selectedTasks.map(t => (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    onClick={e => openTask(t.id, e.detail === 0)}
+                    className="cal-list-item"
+                    data-done={t.completed || undefined}
+                  >
+                    <span className={`custom-checkbox ${t.completed ? 'checked' : ''}`} aria-hidden="true" style={{ width: 15, height: 15 }}>
+                      {t.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6" /></svg>}
                     </span>
-                  </div>
-                  {dayData && (
-                    <div>
-                      {dayData.tasks.slice(0, 3).map(t => (
-                        <div
-                          key={t.id}
-                          onClick={e => { e.stopPropagation(); dispatch({ type: 'SELECT_TASK', id: t.id }) }}
-                          style={{
-                            fontSize: '.65rem',
-                            color: t.completed ? 'var(--text-4)' : 'var(--text-2)',
-                            textDecoration: t.completed ? 'line-through' : 'none',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            padding: '1px 2px',
-                            borderRadius: 3,
-                            marginBottom: 1,
-                            background: t.completed ? 'transparent' : 'var(--accent-soft)',
-                            cursor: 'pointer',
-                          }}
-                          title={t.title}
-                        >
-                          {t.title}
-                        </div>
-                      ))}
-                      {dayData.tasks.length > 3 && (
-                        <div style={{ fontSize: '.6rem', color: 'var(--text-4)' }}>+{dayData.tasks.length - 3} more</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        ))}
-      </div>
-
-      {/* Selected day tasks */}
-      {selectedDay && selectedTasks.length > 0 && (
-        <div className="mt-4 anim-slide-up">
-          <h3 style={{ color: 'var(--text-2)', fontWeight: 600, marginBottom: 8, fontSize: '.9rem' }}>
-            {MONTHS[month]} {selectedDay}
-          </h3>
-          {selectedTasks.map(t => (
-            <div
-              key={t.id}
-              onClick={() => dispatch({ type: 'SELECT_TASK', id: t.id })}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1 cursor-pointer"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <div className={`custom-checkbox ${t.completed ? 'checked' : ''}`} style={{ width: 15, height: 15, pointerEvents: 'none' }}>
-                {t.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
-              </div>
-              <span style={{ color: t.completed ? 'var(--text-4)' : 'var(--text-1)', fontSize: '.875rem', textDecoration: t.completed ? 'line-through' : 'none' }}>
-                {t.title}
-              </span>
-              {t.dueTime && <span style={{ color: 'var(--text-4)', fontSize: '.75rem', marginLeft: 'auto' }}>{t.dueTime}</span>}
-            </div>
-          ))}
-        </div>
+                    <span className="flex-1 truncate">{t.title}</span>
+                    {t.completed && <span className="sr-only">(completed)</span>}
+                    {t.dueTime && <span style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>{t.dueTime}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </div>
   )

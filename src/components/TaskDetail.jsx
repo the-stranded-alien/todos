@@ -104,8 +104,9 @@ export const TaskDetail = ({ onClose }) => {
   const totalTracked = (task.timeTracked || 0) + (isTimerRunning ? elapsed : 0)
 
   return (
-    <div
-      className="flex flex-col h-full anim-slide-in-right overflow-hidden"
+    <aside
+      aria-label="Task details"
+      className="detail-panel flex flex-col h-full anim-slide-in-right overflow-hidden"
       style={{
         width: 320,
         flexShrink: 0,
@@ -115,19 +116,20 @@ export const TaskDetail = ({ onClose }) => {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <span style={{ color: 'var(--text-4)', fontSize: '.75rem', fontWeight: 600 }}>TASK DETAIL</span>
+        <h2 className="detail-label" style={{ margin: 0 }}>Task details</h2>
         <IconButton label="Close details" icon={X} onClick={onClose} tooltipAlign="end" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
         {/* Title */}
         <textarea
+          id="task-detail-title"
+          className="detail-title"
           value={task.title}
           onChange={e => update({ title: e.target.value })}
           style={{
             background: 'none',
             border: 'none',
-            outline: 'none',
             color: 'var(--text-1)',
             fontFamily: 'var(--font-sans)',
             fontSize: '1.15rem',
@@ -137,8 +139,8 @@ export const TaskDetail = ({ onClose }) => {
             resize: 'none',
             minHeight: 64,
           }}
-          placeholder="Task title"
-          aria-label="Task title"
+          placeholder="Task name"
+          aria-label="Task name"
         />
 
         {/* Complete / Priority */}
@@ -146,6 +148,7 @@ export const TaskDetail = ({ onClose }) => {
           <button
             className="btn flex-1"
             onClick={() => task.completed ? uncompleteTask(task.id) : completeTask(task.id)}
+            aria-pressed={task.completed}
             style={{
               background: task.completed ? tint('var(--success)', 12) : 'var(--bg-card)',
               color: task.completed ? 'var(--success)' : 'var(--text-2)',
@@ -154,14 +157,15 @@ export const TaskDetail = ({ onClose }) => {
               fontSize: '.8rem',
             }}
           >
-            {task.completed ? '✓ Completed' : '○ Mark complete'}
+            <span aria-hidden="true">{task.completed ? '✓' : '○'}</span>
+            {task.completed ? 'Completed' : 'Mark complete'}
           </button>
         </div>
 
         {/* Priority */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>PRIORITY</label>
-          <div className="flex gap-1.5 mt-1">
+          <h3 className="detail-label" id="detail-priority">Priority</h3>
+          <div className="flex gap-1.5 mt-1" role="group" aria-labelledby="detail-priority">
             {PRIORITY_OPTIONS.map(({ value, label, color }) => (
               <button
                 key={value}
@@ -175,7 +179,6 @@ export const TaskDetail = ({ onClose }) => {
                   border: `1px solid ${task.priority === value ? tint(color, 40) : 'var(--border)'}`,
                   fontWeight: task.priority === value ? 600 : 400,
                 }}
-                aria-label={`Priority: ${label}`}
                 aria-pressed={task.priority === value}
               >
                 {label}
@@ -186,8 +189,8 @@ export const TaskDetail = ({ onClose }) => {
 
         {/* Due date + time */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>DUE DATE</label>
-          <div className="flex gap-2 mt-1">
+          <h3 className="detail-label" id="detail-due">Due date</h3>
+          <div className="flex gap-2 mt-1" role="group" aria-labelledby="detail-due">
             <input
               type="date"
               className="input-base flex-1"
@@ -214,12 +217,13 @@ export const TaskDetail = ({ onClose }) => {
 
         {/* Project */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>PROJECT</label>
+          <h3 className="detail-label" id="detail-project-label">Project</h3>
           <select
+            id="detail-project"
+            aria-labelledby="detail-project-label"
             className="input-base mt-1"
             value={task.projectId || ''}
             onChange={e => update({ projectId: e.target.value || null })}
-            aria-label="Project"
           >
             <option value="">Inbox (no project)</option>
             {state.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -228,12 +232,14 @@ export const TaskDetail = ({ onClose }) => {
 
         {/* Tags */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>TAGS</label>
+          <h3 className="detail-label" id="detail-tags">Tags</h3>
           <div className="mt-1 relative">
             <div
-              className="flex flex-wrap gap-1 p-2 rounded-lg cursor-text min-h-8"
+              className="tag-input flex flex-wrap gap-1 p-2 rounded-lg cursor-text min-h-8"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
               onClick={() => setShowTagDropdown(true)}
+              role="group"
+              aria-labelledby="detail-tags"
             >
               {tagObjs.map(tag => (
                 <span key={tag.id} className="tag-chip" style={{ background: tint(tag.color), color: ink(tag.color) }}>
@@ -253,38 +259,59 @@ export const TaskDetail = ({ onClose }) => {
                 value={tagSearch}
                 onChange={e => { setTagSearch(e.target.value); setShowTagDropdown(true) }}
                 onFocus={() => setShowTagDropdown(true)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && filteredTags[0]) { e.preventDefault(); toggleTag(filteredTags[0].id); setTagSearch('') }
+                  if (e.key === 'Escape' && showTagDropdown) { e.preventDefault(); e.stopPropagation(); setShowTagDropdown(false) }
+                  if (e.key === 'ArrowDown') { e.preventDefault(); e.currentTarget.closest('.relative')?.querySelector('.tag-option')?.focus() }
+                }}
                 placeholder={tagObjs.length === 0 ? 'Add tags…' : ''}
                 style={{ background: 'none', border: 'none', outline: 'none', fontSize: '.8rem', color: 'var(--text-1)', minWidth: 60, flex: 1 }}
-                aria-label="Search tags"
+                aria-label="Find a tag to add"
               />
             </div>
             {showTagDropdown && (
               <div
+                id="detail-tag-options"
+                role="group"
+                aria-label="Tags"
                 className="absolute z-10 w-full mt-1 rounded-xl py-1"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)', maxHeight: 160, overflowY: 'auto' }}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)', maxHeight: 200, overflowY: 'auto' }}
                 onMouseDown={e => e.preventDefault()}
+                onKeyDown={e => {
+                  const opts = [...e.currentTarget.querySelectorAll('.tag-option')]
+                  const i = opts.indexOf(document.activeElement)
+                  if (e.key === 'ArrowDown') { e.preventDefault(); opts[Math.min(i + 1, opts.length - 1)]?.focus() }
+                  if (e.key === 'ArrowUp') { e.preventDefault(); if (i <= 0) e.currentTarget.parentElement.querySelector('input')?.focus(); else opts[i - 1].focus() }
+                  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setShowTagDropdown(false); e.currentTarget.parentElement.querySelector('input')?.focus() }
+                }}
               >
-                {filteredTags.map(tag => (
-                  <div
-                    key={tag.id}
-                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer"
-                    style={{ background: (task.tags || []).includes(tag.id) ? 'var(--accent-soft)' : 'transparent' }}
-                    onClick={() => { toggleTag(tag.id); setShowTagDropdown(false); setTagSearch('') }}
-                  >
-                    <div className="rounded-full" style={{ width: 8, height: 8, background: tag.color }} />
-                    <span style={{ fontSize: '.85rem', color: 'var(--text-1)' }}>#{tag.name}</span>
-                    {(task.tags || []).includes(tag.id) && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: '.8rem' }}>✓</span>}
-                  </div>
-                ))}
+                {filteredTags.map(tag => {
+                  const on = (task.tags || []).includes(tag.id)
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      className="tag-option menu-item"
+                      aria-pressed={on}
+                      onClick={() => { toggleTag(tag.id); setTagSearch('') }}
+                    >
+                      <span aria-hidden="true" className="menu-swatch" style={{ background: tag.color }} />
+                      <span className="menu-item-label">#{tag.name}</span>
+                      {on && <span aria-hidden="true" className="menu-item-check">✓</span>}
+                    </button>
+                  )
+                })}
                 {filteredTags.length === 0 && (
-                  <div style={{ padding: '8px 12px', color: 'var(--text-4)', fontSize: '.8rem' }}>No tags found</div>
+                  <div style={{ padding: '8px 12px', color: 'var(--text-3)', fontSize: '.8rem' }}>
+                    {state.tags.length ? 'No matching tags.' : 'No tags yet. Create one from the sidebar.'}
+                  </div>
                 )}
                 <button
                   className="btn btn-ghost w-full justify-start px-3 py-1.5"
                   style={{ fontSize: '.8rem', borderTop: '1px solid var(--border-light)', borderRadius: 0 }}
                   onClick={() => setShowTagDropdown(false)}
                 >
-                  Done
+                  Close
                 </button>
               </div>
             )}
@@ -293,12 +320,13 @@ export const TaskDetail = ({ onClose }) => {
 
         {/* Recurring */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>RECURRING</label>
-          <div className="flex gap-1.5 mt-1">
+          <h3 className="detail-label" id="detail-repeat">Repeat</h3>
+          <div className="flex gap-1.5 mt-1" role="group" aria-labelledby="detail-repeat">
             {FREQ_OPTIONS.map(freq => (
               <button
                 key={freq}
                 className="btn flex-1"
+                aria-pressed={task.recurring?.freq === freq || (!task.recurring && freq === 'none')}
                 onClick={() => update({ recurring: freq === 'none' ? null : { freq, interval: 1 } })}
                 style={{
                   fontSize: '.72rem',
@@ -317,7 +345,7 @@ export const TaskDetail = ({ onClose }) => {
 
         {/* Time tracking */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>TIME TRACKED</label>
+          <h3 className="detail-label" id="detail-time">Time tracked</h3>
           <div className="flex items-center gap-2 mt-1">
             <span className="timer-digits" style={{ color: 'var(--text-1)', fontSize: '1.1rem', fontWeight: 600 }}>
               {formatDuration(totalTracked)}
@@ -331,7 +359,7 @@ export const TaskDetail = ({ onClose }) => {
               onClick={handleTimerToggle}
             />
             {isTimerRunning && (
-              <span style={{ color: 'var(--accent)', fontSize: '.75rem' }} className="anim-pulse-glow">
+              <span role="status" style={{ color: 'var(--accent)', fontSize: '.75rem' }} className="anim-pulse-glow">
                 Running
               </span>
             )}
@@ -341,7 +369,7 @@ export const TaskDetail = ({ onClose }) => {
         {/* Notes */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>NOTES</label>
+            <h3 className="detail-label" id="detail-notes-label">Notes</h3>
             <button
               type="button"
               className="btn btn-ghost"
@@ -350,7 +378,7 @@ export const TaskDetail = ({ onClose }) => {
               style={{ fontSize: '.75rem', padding: '3px 8px' }}
             >
               {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
-              {showPreview ? ' Edit' : ' Preview'}
+              Preview
             </button>
           </div>
           {showPreview ? (
@@ -366,14 +394,14 @@ export const TaskDetail = ({ onClose }) => {
               onChange={e => update({ notes: e.target.value })}
               placeholder="Add notes (markdown supported)…"
               style={{ minHeight: 100, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '.8rem' }}
-              aria-label="Notes"
+              aria-labelledby="detail-notes-label"
             />
           )}
         </div>
 
         {/* Subtasks */}
         <div>
-          <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>SUBTASKS ({subtasks.length})</label>
+          <h3 className="detail-label" id="detail-subtasks">Subtasks ({subtasks.length})</h3>
           <div className="mt-1 space-y-1">
             {subtasks.map(sub => (
               <div key={sub.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
@@ -419,7 +447,7 @@ export const TaskDetail = ({ onClose }) => {
         {/* Activity */}
         {history.length > 0 && (
           <div>
-            <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>ACTIVITY</label>
+            <h3 className="detail-label" id="detail-activity">Activity</h3>
             <div className="mt-1 space-y-1">
               {history.map(h => (
                 <div key={h.id} className="flex items-start gap-2" style={{ fontSize: '.75rem', color: 'var(--text-4)' }}>
@@ -461,6 +489,6 @@ export const TaskDetail = ({ onClose }) => {
           onCancel={() => setShowConfirmDelete(false)}
         />
       )}
-    </div>
+    </aside>
   )
 }

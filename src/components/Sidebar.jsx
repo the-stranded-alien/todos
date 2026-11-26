@@ -87,8 +87,9 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
   if (!sidebarOpen) return null
 
   return (
-    <aside
-      className="flex flex-col h-full overflow-y-auto py-3"
+    <nav
+      aria-label="Views, projects and tags"
+      className="sidebar flex flex-col h-full overflow-y-auto py-3 no-print"
       style={{
         width: 240,
         flexShrink: 0,
@@ -97,7 +98,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
       }}
     >
       {/* ── Views ───────────────────────────── */}
-      <section className="px-2 mb-4">
+      <section className="px-2 mb-4" aria-label="Views">
         {VIEWS.map(({ id, label, icon }) => {
           const Ic = ICON_MAP[icon] || Folder
           const count = taskCounts[id]
@@ -106,7 +107,8 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
           return (
             <button
               key={id}
-              className="w-full flex items-center gap-2.5 px-3 rounded-lg text-left transition-colors"
+              className="sidebar-view w-full flex items-center gap-2.5 px-3 rounded-lg text-left transition-colors"
+              aria-current={active ? 'page' : undefined}
               style={{
                 paddingBlock: 'var(--nav-py)',
                 background: active ? 'var(--accent-soft)' : 'transparent',
@@ -131,7 +133,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
                   minWidth: 20,
                   textAlign: 'center',
                 }}>
-                  {count}
+                  {count}<span className="sr-only"> open tasks</span>
                 </span>
               )}
             </button>
@@ -142,7 +144,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
       <div style={{ height: 1, background: 'var(--border)', margin: '0 12px 12px' }} />
 
       {/* ── Projects ────────────────────────── */}
-      <section className="px-2 mb-4">
+      <section className="px-2 mb-4" aria-label="Projects">
         <div className="flex items-center pl-3 mb-1">
           <h2 className="flex-1">
             <button
@@ -192,7 +194,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
       <div style={{ height: 1, background: 'var(--border)', margin: '0 12px 12px' }} />
 
       {/* ── Tags ────────────────────────────── */}
-      <section className="px-2">
+      <section className="px-2" aria-label="Tags">
         <div className="flex items-center pl-3 mb-1">
           <h2 className="flex-1">
             <button
@@ -234,6 +236,6 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
           All data stays in your browser. Nothing is ever sent anywhere.
         </p>
       </div>
-    </aside>
+    </nav>
   )
 }

@@ -68,12 +68,12 @@ export const StatsPanel = () => {
 
   return (
     <div className="flex-1 overflow-auto p-6">
-      <h2 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.3rem', marginBottom: 24 }}>Statistics</h2>
+      <h1 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.3rem', marginBottom: 24 }}>Statistics</h1>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         {/* Completion rate */}
         <div className="rounded-2xl p-4 flex flex-col items-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <svg width="100" height="100" viewBox="0 0 100 100">
+          <svg width="100" height="100" viewBox="0 0 100 100" role="img" aria-label={`${Math.round(stats.completionRate * 100)}% of tasks completed`}>
             <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border)" strokeWidth="8" />
             <circle
               cx="50" cy="50" r={radius}
@@ -86,7 +86,7 @@ export const StatsPanel = () => {
               transform="rotate(-90 50 50)"
               style={{ transition: 'stroke-dashoffset .6s ease' }}
             />
-            <text x="50" y="55" textAnchor="middle" style={{ fill: 'var(--text-1)', fontSize: '1rem', fontWeight: 700 }}>
+            <text x="50" y="55" textAnchor="middle" aria-hidden="true" style={{ fill: 'var(--text-1)', fontSize: '1rem', fontWeight: 700 }}>
               {Math.round(stats.completionRate * 100)}%
             </text>
           </svg>
@@ -95,7 +95,7 @@ export const StatsPanel = () => {
 
         {/* Streak */}
         <div className="rounded-2xl p-4 flex flex-col items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ fontSize: '2.5rem' }}>🔥</div>
+          <div aria-hidden="true" style={{ fontSize: '2.5rem' }}>🔥</div>
           <div style={{ color: 'var(--text-1)', fontSize: '1.75rem', fontWeight: 700 }}>{stats.streak}</div>
           <span style={{ color: 'var(--text-3)', fontSize: '.8rem' }}>Day streak</span>
         </div>
@@ -115,11 +115,17 @@ export const StatsPanel = () => {
 
       {/* Bar chart */}
       <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-        <h3 style={{ color: 'var(--text-2)', fontWeight: 600, fontSize: '.9rem', marginBottom: 16 }}>Completions this week</h3>
-        <div className="flex items-end justify-between gap-2" style={{ height: 80 }}>
+        <h2 id="week-chart" style={{ color: 'var(--text-2)', fontWeight: 600, fontSize: '.9rem', marginBottom: 16 }}>Completions this week</h2>
+        <div
+          className="flex items-end justify-between gap-2"
+          style={{ height: 80 }}
+          role="img"
+          aria-labelledby="week-chart"
+          aria-describedby="week-chart-desc"
+        >
           {stats.completedByDay.map((count, i) => (
             <div key={i} className="flex flex-col items-center gap-1 flex-1">
-              <span style={{ color: 'var(--text-4)', fontSize: '.65rem' }}>{count > 0 ? count : ''}</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '.65rem' }}>{count > 0 ? count : ''}</span>
               <div
                 className="w-full rounded-t-md chart-bar"
                 style={{
@@ -129,12 +135,17 @@ export const StatsPanel = () => {
                   minHeight: 4,
                 }}
               />
-              <span style={{ color: 'var(--text-4)', fontSize: '.65rem' }}>{DAY_NAMES[i]}</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '.65rem' }}>{DAY_NAMES[i]}</span>
             </div>
           ))}
         </div>
-        <p style={{ color: 'var(--text-4)', fontSize: '.75rem', marginTop: 12 }}>
-          Most productive day: <strong style={{ color: 'var(--text-2)' }}>{stats.maxDay}</strong>
+        <p id="week-chart-desc" className="sr-only">
+          {stats.completedByDay.map((c, i) => `${DAY_NAMES[i]}: ${c}`).join(', ')}
+        </p>
+        <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: 12 }}>
+          {stats.completedThisWeek > 0
+            ? <>Most productive day: <strong style={{ color: 'var(--text-2)' }}>{stats.maxDay}</strong></>
+            : 'Complete a task to start your weekly chart.'}
         </p>
       </div>
     </div>

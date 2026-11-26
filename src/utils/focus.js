@@ -1,0 +1,23 @@
+// ── Focus helpers ──────────────────────────────────────────
+
+// Move focus to a task's title button (after closing the detail panel, renaming…)
+export const focusTaskRow = (id) => {
+  requestAnimationFrame(() => document.querySelector(`[data-task-id="${CSS.escape(id)}"] .task-title`)?.focus())
+}
+
+// Move focus into the detail panel's title field
+export const focusTaskDetail = () => {
+  requestAnimationFrame(() => document.getElementById('task-detail-title')?.focus())
+}
+
+// ↑/↓/Home/End between task title buttons inside a container
+export const moveTaskFocus = (e) => {
+  if (!e.target.classList?.contains('task-title')) return
+  const keys = { ArrowDown: 1, ArrowUp: -1, Home: 'first', End: 'last' }
+  if (!(e.key in keys)) return
+  const all = [...e.currentTarget.querySelectorAll('.task-title')]
+  const i = all.indexOf(e.target)
+  const k = keys[e.key]
+  const next = k === 'first' ? all[0] : k === 'last' ? all[all.length - 1] : all[i + k]
+  if (next) { e.preventDefault(); next.focus() }
+}

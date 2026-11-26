@@ -73,8 +73,8 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter') submit()
-    if (e.key === 'Escape') { setValue(''); setParsed(null) }
-  }, [submit])
+    if (e.key === 'Escape' && value) { e.preventDefault(); setValue(''); setParsed(null) }
+  }, [submit, value])
 
   // Show chips if something meaningful was parsed
   const hasParsed = parsed && (parsed.dueDate || parsed.priority > 0 || parsed.tags.length > 0 || parsed.projectName)
@@ -85,14 +85,13 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
   return (
     <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-light)' }}>
       <div
-        className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+        className="quick-add-box flex items-center gap-2 rounded-xl px-3 py-2.5"
         style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           boxShadow: 'var(--shadow-sm)',
           transition: 'border-color .15s, box-shadow .15s',
         }}
-        onFocus={() => {}}
       >
         <Plus size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
         <input

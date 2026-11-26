@@ -1,10 +1,11 @@
 // ── App root ───────────────────────────────────────────────
-import { useRef, useState, useMemo, useEffect } from 'react'
+import { useRef, useState, useMemo, useEffect, useCallback } from 'react'
 import { StoreProvider } from './useStore.jsx'
 import { useStore } from './store/context.js'
 import { IconStyleContext } from './icons.jsx'
 import { usePrefs, resolvedTheme } from './prefs.js'
 import { getTheme } from './themes.js'
+import { focusTaskRow } from './utils/focus.js'
 import { useHotkeys } from './hooks/useHotkeys.js'
 import { useNotifications } from './hooks/useNotifications.js'
 
@@ -57,6 +58,14 @@ const AppInner = () => {
     return () => window.removeEventListener('todos:set-view', onSetView)
   }, [dispatch])
 
+  // Close the detail panel; if focus was in it, put focus back on the task
+  const selectedId = state.selectedTaskId
+  const closeDetail = useCallback(() => {
+    const inside = document.querySelector('.detail-panel')?.contains(document.activeElement)
+    dispatch({ type: 'CLOSE_DETAIL' })
+    if (inside && selectedId) focusTaskRow(selectedId)
+  }, [dispatch, selectedId])
+
   // ── Hotkeys ──────────────────────────────────────────────
   const hotkeys = useMemo(() => [
     { key: 'n',  ctrl: false, shift: false, handler: () => quickAddRef.current?.focus() },
@@ -65,9 +74,8 @@ const AppInner = () => {
     { key: 'k',  ctrl: true,  shift: false, handler: () => setCommandPalette(true) },
     { key: 'z',  ctrl: true,  shift: false, handler: () => undo() },
     { key: 'z',  ctrl: true,  shift: true,  handler: () => redo() },
-    { key: 'Escape', ctrl: false, shift: false, handler: () => {
-        if (focusMode) { setFocusMode(false); return }
-        if (state.detailOpen) { dispatch({ type: 'CLOSE_DETAIL' }); return }
+    { key: 'Escape', ctrl: false, shift: false, allowInInput: true, handler: () => {
+        if (state.detailOpen) { closeDetail(); return }
       }
     },
     { key: '1', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'inbox' }) },
@@ -76,7 +84,7 @@ const AppInner = () => {
     { key: '4', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'all' }) },
     { key: 'f', ctrl: false, shift: false, handler: () => setFocusMode(v => !v) },
     { key: 'F', ctrl: false, shift: true,  handler: () => setFocusMode(v => !v) },
-  ], [dispatch, undo, redo, focusMode, state.detailOpen])
+  ], [dispatch, undo, redo, state.detailOpen, closeDetail])
 
   useHotkeys(hotkeys)
 
@@ -130,7 +138,7 @@ const AppInner = () => {
 
           {/* Detail panel */}
           {detailOpen && (
-            <TaskDetail onClose={() => dispatch({ type: 'CLOSE_DETAIL' })} />
+            <TaskDetail onClose={closeDetail} />
           )}
         </main>
       </div>

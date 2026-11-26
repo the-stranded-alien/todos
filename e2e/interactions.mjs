@@ -65,23 +65,23 @@ await check('tooltip shows after hover, names the button, hides on pointer-down'
 })
 
 await check('context menu: Shift+F10 opens, Delete removes, toast Undo restores', async () => {
-  const row = page.locator('[role=row]', { hasText: 'Beta task' })
-  await row.focus(); await page.keyboard.press('Shift+F10')
+  const row = page.locator('.task-row', { hasText: 'Beta task' })
+  await row.locator('.task-title').focus(); await page.keyboard.press('Shift+F10')
   await page.getByRole('menu').waitFor()
   assert(await onScreen('[role=menu]'), 'context menu off screen')
   await page.getByRole('menuitem', { name: /Delete/ }).click()
   await page.waitForTimeout(200)
-  assert(await page.locator('[role=row]', { hasText: 'Beta task' }).count() === 0, 'not deleted')
+  assert(await page.locator('.task-row', { hasText: 'Beta task' }).count() === 0, 'not deleted')
   const status = page.getByRole('status')
   assert((await status.textContent()).includes('Deleted “Beta task”'), 'toast text: ' + await status.textContent())
   await status.getByRole('button', { name: 'Undo' }).click()
-  await page.locator('[role=row]', { hasText: 'Beta task' }).waitFor({ timeout: 2000 })
+  await page.locator('.task-row', { hasText: 'Beta task' }).waitFor({ timeout: 2000 })
 })
 
 await check('right-click menu duplicates a task', async () => {
-  await page.locator('[role=row]', { hasText: 'Alpha task' }).first().click({ button: 'right', timeout: 4000 })
+  await page.locator('.task-row', { hasText: 'Alpha task' }).first().click({ button: 'right', timeout: 4000 })
   await page.getByRole('menuitem', { name: 'Duplicate' }).click()
-  await page.locator('[role=row]', { hasText: 'Alpha task (copy)' }).waitFor({ timeout: 2000 })
+  await page.locator('.task-row', { hasText: 'Alpha task (copy)' }).waitFor({ timeout: 2000 })
 })
 
 await check('shortcuts dialog: "?" opens, focus inside, Escape closes', async () => {
@@ -97,13 +97,13 @@ await check('shortcuts dialog: "?" opens, focus inside, Escape closes', async ()
 await check('palette: Ctrl+K opens with input focused; Escape closes', async () => {
   await page.keyboard.press('Control+k')
   await page.getByRole('dialog', { name: 'Command palette' }).waitFor()
-  assert(await active() === 'Command search', 'focus: ' + await active())
+  assert(await active() === 'Search commands, views and tasks', 'focus: ' + await active())
   await page.keyboard.press('Escape')
   assert(await page.getByRole('dialog').count() === 0, 'still open')
 })
 
 await check('nested: Escape in project dialog leaves the detail panel open', async () => {
-  await page.locator('[role=row]', { hasText: 'Gamma task' }).click()
+  await page.locator('.task-row', { hasText: 'Gamma task' }).click()
   await page.getByRole('button', { name: 'Close details' }).waitFor()
   await page.getByRole('button', { name: 'New project' }).click()
   const dlg = page.getByRole('dialog', { name: 'New project' })
@@ -133,14 +133,77 @@ await check('native undo still works inside text fields', async () => {
 })
 
 await check('bulk bar menus open upward and stay on screen', async () => {
-  await page.locator('[role=row]', { hasText: 'Alpha task' }).first().hover()
-  await page.getByRole('checkbox', { name: /Select Alpha task/ }).first().check()
+  await page.locator('.task-row', { hasText: 'Alpha task' }).first().hover()
+  await page.getByRole('checkbox', { name: 'Select “Alpha task”' }).first().check()
   await page.getByRole('button', { name: 'Move to project' }).click()
   await page.getByRole('menu').waitFor()
   assert(await onScreen('[role=menu]'), 'off screen')
   await page.getByRole('menuitem', { name: 'Garden' }).click()
   await page.getByRole('toolbar').waitFor({ state: 'detached', timeout: 2000 })
-  assert(await page.locator('[role=row]', { hasText: 'Alpha task' }).count() === 1, 'moved task should leave the inbox (copy stays)')
+  assert(await page.locator('.task-row', { hasText: 'Alpha task' }).count() === 1, 'moved task should leave the inbox (copy stays)')
+})
+
+await check('arrow keys move between tasks; Enter opens details with focus; Escape returns focus', async () => {
+  await page.mouse.click(700, 700)
+  const first = page.locator('.task-title').first()
+  await first.focus()
+  const firstName = await first.textContent()
+  await page.keyboard.press('ArrowDown')
+  const second = await active()
+  assert(second !== firstName, 'ArrowDown did not move focus')
+  await page.keyboard.press('Home')
+  assert(await active() === firstName, 'Home did not go to first')
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(100)
+  assert(await page.evaluate(() => document.activeElement.id) === 'task-detail-title', 'detail title not focused')
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(100)
+  assert(await page.getByRole('complementary', { name: 'Task details' }).count() === 0, 'panel still open')
+  assert(await active() === firstName, 'focus not back on the task: ' + await active())
+})
+
+await check('Space on a task title completes it', async () => {
+  const title = page.locator('.task-title', { hasText: 'Gamma task' })
+  await title.focus(); await page.keyboard.press(' ')
+  await page.waitForTimeout(700)
+  assert(await page.locator('.task-row:not([data-done])', { hasText: 'Gamma task' }).count() === 0, 'not completed')
+  await page.keyboard.press('Control+z')
+})
+
+await check('palette is a combobox with an active option', async () => {
+  await page.mouse.click(700, 700)
+  await page.keyboard.press('Control+k')
+  const input = page.getByRole('combobox', { name: 'Search commands, views and tasks' })
+  await input.waitFor()
+  await page.keyboard.type('go to')
+  const ad = await input.getAttribute('aria-activedescendant')
+  assert(ad && await page.locator(`#${ad}[role=option][aria-selected=true]`).count() === 1, 'no active option')
+  await page.keyboard.press('ArrowDown')
+  assert(await input.getAttribute('aria-activedescendant') !== ad, 'arrow did not move')
+  await page.keyboard.press('Escape')
+})
+
+await check('calendar: arrow keys move between days', async () => {
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('todos:set-view', { detail: 'calendar' })))
+  const today = page.locator('.cal-day[data-today]')
+  await today.focus()
+  const d0 = Number(await today.getAttribute('data-day'))
+  await page.keyboard.press(d0 > 1 ? 'ArrowLeft' : 'ArrowRight')
+  const d1 = Number(await page.evaluate(() => document.activeElement.dataset.day))
+  assert(Math.abs(d1 - d0) === 1, `moved from ${d0} to ${d1}`)
+  await page.keyboard.press('Enter')
+  assert(await page.locator('.cal-day[aria-pressed=true]').count() === 1, 'day not selected')
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('todos:set-view', { detail: 'inbox' })))
+})
+
+await check('focus mode is a modal dialog; Escape exits', async () => {
+  await page.mouse.click(700, 700)
+  await page.keyboard.press('f')
+  const dlg = page.getByRole('dialog', { name: 'Focus mode' })
+  await dlg.waitFor()
+  assert((await active()).includes('Done'), 'Done not focused: ' + await active())
+  await page.keyboard.press('Escape')
+  assert(await dlg.count() === 0, 'still open')
 })
 
 await check('restore with a bad file shows a plain warning toast (no alert)', async () => {

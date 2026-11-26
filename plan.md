@@ -88,14 +88,17 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - [x] Task row context menu (right-click / Shift+F10 / Menu key): Open details, Rename, Duplicate, Priority, Delete (danger, last, with Undo). "Move to…" stays in the bulk bar
 - **Notes:** New primitives in `src/components/ui/` (Dialog, Menu/MenuButton/ContextMenu, IconButton, Toaster, TooltipLayer, EmptyState) and `useDialogKeys` with a dialog stack, so Escape closes only the top dialog. One portal tooltip layer serves every `[data-tooltip]`, so tooltips are never clipped by the scrolling sidebar. Rows: Enter opens, Delete deletes with Undo. `e2e/interactions.mjs` (13 real-Chrome checks: keyboard menus, focus return, outside click, nested Escape, backdrop close, tooltip timing, toast Undo, native text undo, no `alert()`) — **all pass**. Pre-existing bug found by these checks: QuickAdd refocused its input after the async save and stole focus if you'd moved on; fixed. Sidebar rows restructured (a row containing a main button and an edit button), which pulls part of Batch 5 forward. `e2e/jsx-tags.mjs` now also checks that every name imported from `icons.jsx` exists.
 
-### Batch 5 — Accessibility ⬜
-- [ ] Landmarks: `header`, `nav aria-label="Views"`, `main`, `aside` for detail panel
-- [ ] Sidebar: `aria-current="page"` on the active view (projects/tags ✅ in Batch 4; views still to do); tag/project rows become a `div` with a main button + edit button ✅ (Batch 4)
-- [ ] Task list: list semantics (`ul`/`li`), no invalid `role="row"`; keyboard: ↑/↓ moves focus, Enter opens, Space completes, Delete deletes (with Undo)
-- [ ] Command palette: combobox pattern (`role="combobox"`, `aria-controls`, `aria-expanded`, `aria-activedescendant`, `listbox`/`option`, `aria-selected`), scroll active into view
-- [ ] `aria-pressed` on toggles, live region for counts/timer status, labels for every input/select
-- [ ] Visible `:focus-visible` rings on all controls
-- [ ] axe: zero violations in every view × base themes (+ high contrast)
+### Batch 5 — Accessibility ✅
+- [x] Landmarks: `header`, `nav aria-label="Views, projects and tags"`, `main`, `aside aria-label="Task details"`; `role="search"` on the search box; one `h1` per view
+- [x] Sidebar: `aria-current="page"` on the active view, project and tag; rows are a `div` with a main button + edit button
+- [x] Task list: list semantics (`ul`/`li`, nested `ul` for subtasks, `h2` per date group); the title is a real button with due date/priority/tags as its description; ↑/↓/Home/End move focus, Enter opens the detail panel *with focus*, Escape returns focus to the task, Space completes, Delete deletes (Undo), F2 renames, Shift+F10 menu
+- [x] Command palette: combobox pattern (`role="combobox"`, `aria-controls`, `aria-expanded`, `aria-activedescendant`, `listbox`/`option`, `aria-selected`), scroll active into view
+- [x] `aria-pressed` on toggles, live region for counts/timer status, labels for every input/select
+- [x] Visible `:focus-visible` rings on all controls
+- [x] axe: zero violations in every view × base themes (+ high contrast)
+- **Also done:** calendar rebuilt as a real `<table>` (column headers, one button per day with arrow-key movement, `aria-current="date"` on today); focus mode is a modal dialog; detail-panel fields are grouped and labelled, the tag picker is keyboard-usable; Escape now works from inside detail-panel fields; stats ring and weekly chart have text alternatives.
+- **Pre-existing bugs fixed:** the palette's highlighted row and the row Enter ran could disagree (grouped vs flat order); "Most productive day: Sun" was shown with no completions.
+- **Verified:** the axe sweep now also covers 8 open states (detail panel, filters, palette, shortcuts, project dialog, header menu, context menu, focus mode). **0 violations in all 28 theme variants (14 themes ± high contrast) × 7 views + 8 states** at 1280px (baseline was 78 in just 2 themes). 18/18 interaction checks pass (5 new: arrow keys, focus in/out of the detail panel, Space completes, combobox active option, calendar arrow keys, focus-mode dialog). Menus are portalled into `<main>` so they sit inside a landmark.
 
 ### Batch 6 — Layout and responsiveness ⬜
 - [ ] Header as 3-column grid (`auto | minmax(0,1fr) | auto`); check 1280 / 1100 / 900 / 390px for overlap
@@ -175,4 +178,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 1 — Tooling & quick fixes | 2026-11-26 | `633f7f4` | lint ✔ · 27 tests ✔ · build ✔ · Chrome sweep ran (baseline recorded) |
 | 2 — Tokens & themes | 2026-11-26 | `9d2205c` | lint ✔ · 31 tests ✔ · build ✔ · contrast audit 0 fails · axe contrast 0 in 28 variants |
 | 3 — Icons | 2026-11-26 | `2487e04` | lint ✔ · 31 tests ✔ · build ✔ · JSX tag check ✔ · icon scan 0 in 5 themes |
-| 4 — Shared components | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · 13/13 interaction checks ✔ · only Batch-5 axe items left |
+| 4 — Shared components | 2026-11-26 | `a43a2da` | lint ✔ · 31 tests ✔ · build ✔ · 13/13 interaction checks ✔ · only Batch-5 axe items left |
+| 5 — Accessibility | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · 18/18 interactions ✔ · axe 0 in 28 variants × 15 views/states |

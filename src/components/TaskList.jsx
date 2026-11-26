@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp, Inbox, Sun, Calendar
 import { EmptyState } from './ui/EmptyState.jsx'
 import { IconButton } from './ui/IconButton.jsx'
 import { Menu } from './ui/Menu.jsx'
+import { focusTaskDetail, moveTaskFocus } from '../utils/focus.js'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { TaskRow } from './TaskRow.jsx'
@@ -131,7 +132,10 @@ export const TaskList = ({ quickAddRef }) => {
     }
   }, [tasks, view, today, in7str, searchQuery, filters, sortBy])
 
-  const handleSelect    = useCallback((id) => dispatch({ type: 'SELECT_TASK', id }), [dispatch])
+  const handleSelect    = useCallback((id, opts) => {
+    dispatch({ type: 'SELECT_TASK', id })
+    if (opts?.focus) focusTaskDetail()
+  }, [dispatch])
   const handleBulkToggle = useCallback((id) => dispatch({ type: 'TOGGLE_BULK', id }), [dispatch])
 
   const handleDragStart = useCallback((id) => { setDraggingId(id); dragRef.current = id }, [])
@@ -184,7 +188,10 @@ export const TaskList = ({ quickAddRef }) => {
       {/* ── View header ──────────────────────────────────── */}
       <div style={{ padding: '20px 20px 0', flexShrink: 0 }}>
         <div className="flex items-center gap-2 mb-4">
-          <h1 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.4rem', flex: 1 }}>{viewTitle}</h1>
+          <h1 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.4rem' }}>{viewTitle}</h1>
+          <span aria-live="polite" style={{ color: 'var(--text-3)', fontSize: '.8rem', flex: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {view === 'completed' ? completedTasks.length : activeTasks.length} {(view === 'completed' ? completedTasks.length : activeTasks.length) === 1 ? 'task' : 'tasks'}
+          </span>
 
           {/* Active filter badge */}
           {activeFilterCount > 0 && (
@@ -276,18 +283,17 @@ export const TaskList = ({ quickAddRef }) => {
       )}
 
       {/* ── Task list ─────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto" style={{ padding: '4px 12px 16px' }}>
+      <div className="flex-1 overflow-y-auto" style={{ padding: '4px 12px 16px' }} onKeyDown={moveTaskFocus}>
 
         {/* Upcoming: grouped by date */}
         {upcomingGroups ? (
           upcomingGroups.length === 0 ? <ViewEmpty view={view} searching={!!searchQuery} /> :
           upcomingGroups.map(([date, dateTasks]) => (
-            <div key={date} className="mb-5">
-              <div style={{ color: 'var(--text-4)', fontSize: '.72rem', fontWeight: 700, letterSpacing: '.06em', padding: '0 4px 6px', textTransform: 'uppercase' }}>
-                {formatGroupDate(date)}
-              </div>
-              {dateTasks.map(task => (
-                <TaskRow
+            <section key={date} className="mb-5" aria-labelledby={`group-${date}`}>
+              <h2 id={`group-${date}`} className="group-label">{formatGroupDate(date)}</h2>
+              <ul className="task-ul">
+                {dateTasks.map(task => (
+                  <TaskRow
                   key={task.id}
                   task={task}
                   isSelected={selectedTaskId === task.id}
@@ -295,68 +301,85 @@ export const TaskList = ({ quickAddRef }) => {
                   onSelect={handleSelect}
                   onBulkToggle={handleBulkToggle}
                 />
-              ))}
-            </div>
+                ))}
+              </ul>
+            </section>
           ))
         ) : (
           <>
             {activeTasks.length === 0 && view !== 'completed' && <ViewEmpty view={view} searching={!!searchQuery} />}
-            {activeTasks.map(task => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                isSelected={selectedTaskId === task.id}
-                isChecked={bulkSelected.has(task.id)}
-                onSelect={handleSelect}
-                onBulkToggle={handleBulkToggle}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                dragging={draggingId === task.id}
-                dropTarget={dragOverId === task.id ? 'above' : null}
-              />
-            ))}
+            {activeTasks.length > 0 && (
+              <ul className="task-ul" aria-label={`${viewTitle} tasks`}>
+                {activeTasks.map(task => (
+                  <TaskRow
+                  key={task.id}
+                  task={task}
+                  isSelected={selectedTaskId === task.id}
+                  isChecked={bulkSelected.has(task.id)}
+                  onSelect={handleSelect}
+                  onBulkToggle={handleBulkToggle}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  dragging={draggingId === task.id}
+                  dropTarget={dragOverId === task.id ? 'above' : null}
+                />
+                ))}
+              </ul>
+            )}
           </>
         )}
 
         {/* Completed section (inline in non-completed views) */}
         {completedTasks.length > 0 && view !== 'completed' && (
-          <div className="mt-2">
-            <button
-              className="flex items-center gap-2 px-2 py-2 w-full text-left rounded-lg"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', fontSize: '.78rem', fontWeight: 500 }}
-              onClick={() => setCompletedOpen(v => !v)}
-            >
-              {completedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-              Completed · {completedTasks.length}
-            </button>
-            {completedOpen && completedTasks.map(task => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                isSelected={selectedTaskId === task.id}
-                isChecked={bulkSelected.has(task.id)}
-                onSelect={handleSelect}
-                onBulkToggle={handleBulkToggle}
-              />
-            ))}
-          </div>
+          <section className="mt-2" aria-labelledby="completed-toggle">
+            <h2>
+              <button
+                id="completed-toggle"
+                className="sidebar-heading"
+                style={{ padding: '8px 4px', fontSize: '.75rem', letterSpacing: 0, textTransform: 'none', fontWeight: 600 }}
+                aria-expanded={completedOpen}
+                onClick={() => setCompletedOpen(v => !v)}
+              >
+                {completedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                Completed · {completedTasks.length}
+              </button>
+            </h2>
+            {completedOpen && (
+              <ul className="task-ul">
+                {completedTasks.map(task => (
+                  <TaskRow
+                  key={task.id}
+                  task={task}
+                  isSelected={selectedTaskId === task.id}
+                  isChecked={bulkSelected.has(task.id)}
+                  onSelect={handleSelect}
+                  onBulkToggle={handleBulkToggle}
+                />
+                ))}
+              </ul>
+            )}
+          </section>
         )}
 
         {/* Completed view */}
         {view === 'completed' && (
           completedTasks.length === 0
             ? <ViewEmpty view={view} searching={!!searchQuery} />
-            : completedTasks.map(task => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                isSelected={selectedTaskId === task.id}
-                isChecked={bulkSelected.has(task.id)}
-                onSelect={handleSelect}
-                onBulkToggle={handleBulkToggle}
-              />
-            ))
+            : (
+              <ul className="task-ul" aria-label="Completed tasks">
+                {completedTasks.map(task => (
+                  <TaskRow
+                  key={task.id}
+                  task={task}
+                  isSelected={selectedTaskId === task.id}
+                  isChecked={bulkSelected.has(task.id)}
+                  onSelect={handleSelect}
+                  onBulkToggle={handleBulkToggle}
+                />
+                ))}
+              </ul>
+            )
         )}
       </div>
     </div>

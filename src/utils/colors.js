@@ -8,6 +8,6 @@ export const DEFAULT_SWATCH = SWATCHES[0]
 // Translucent background tint
 export const tint = (c, pct = 14) => `color-mix(in srgb, ${c} ${pct}%, transparent)`
 // Foreground that keeps contrast: pulls the colour toward the theme's text colour
-export const ink = (c) => `color-mix(in srgb, ${c} 50%, var(--text-1))`
+export const ink = (c) => `color-mix(in srgb, ${c} 42%, var(--text-1))`
 
 export const PRIORITY_VARS = ['var(--text-3)', 'var(--prio-1)', 'var(--prio-2)', 'var(--prio-3)']
