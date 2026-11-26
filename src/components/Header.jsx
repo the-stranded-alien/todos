@@ -11,7 +11,7 @@ import * as dbUtils from '../db.js'
 import { exportJSON, exportCSV } from '../utils/export.js'
 import { toast } from '../toast.js'
 
-export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
+export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, onToggleSidebar }) => {
   const { state, dispatch, importData } = useStore()
   const prefs = usePrefs()
   const theme = resolvedTheme(prefs)
@@ -56,23 +56,24 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
   const themeLabel = `Theme: ${getTheme(theme).label} (switch to ${getTheme(upcoming).label})`
 
   return (
-    <header className="surface-header fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-3 h-14 no-print">
-      <IconButton
-        label={state.sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-        icon={state.sidebarOpen ? PanelLeftClose : PanelLeft}
-        onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-        aria-expanded={state.sidebarOpen}
-        tooltipAlign="start"
-      />
-
-      <div className="flex items-center gap-2 mr-3" style={{ flexShrink: 0 }}>
-        <div className="logo-tile rounded-lg p-1.5 flex">
-          <CheckSquare size={15} variant="filled" />
+    <header className="app-header surface-header no-print">
+      <div className="header-start">
+        <IconButton
+          label={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+          icon={sidebarVisible ? PanelLeftClose : PanelLeft}
+          onClick={onToggleSidebar}
+          aria-expanded={sidebarVisible}
+          tooltipAlign="start"
+        />
+        <div className="flex items-center gap-2">
+          <div className="logo-tile rounded-lg p-1.5 flex">
+            <CheckSquare size={15} variant="filled" />
+          </div>
+          <span className="logo-text">Todos</span>
         </div>
-        <span style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text-1)' }}>Todos</span>
       </div>
 
-      <div className="flex-1 relative" style={{ maxWidth: 420 }} role="search">
+      <div className="header-search relative" role="search">
         <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
         <input
           ref={searchRef}
@@ -97,7 +98,7 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
         )}
       </div>
 
-      <div className="flex items-center gap-0.5 ml-auto">
+      <div className="header-end">
         <IconButton label="Command palette" tooltip="Command palette (Ctrl/⌘+K)" icon={Command} onClick={onOpenCommandPalette} />
         <MenuButton
           label="Download and restore"

@@ -6,6 +6,8 @@ import { IconStyleContext } from './icons.jsx'
 import { usePrefs, resolvedTheme } from './prefs.js'
 import { getTheme } from './themes.js'
 import { focusTaskRow } from './utils/focus.js'
+import { useMediaQuery, NARROW } from './hooks/useMediaQuery.js'
+import { Drawer } from './components/ui/Drawer.jsx'
 import { useHotkeys } from './hooks/useHotkeys.js'
 import { useNotifications } from './hooks/useNotifications.js'
 
@@ -30,6 +32,13 @@ const AppInner = () => {
   const prefs = usePrefs()
   const iconStyle = getTheme(resolvedTheme(prefs)).dark ? 'filled' : 'two-tone'
   const quickAddRef = useRef(null)
+  const narrow = useMediaQuery(NARROW)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const toggleSidebar = useCallback(() => {
+    if (narrow) setDrawerOpen(v => !v)
+    else dispatch({ type: 'TOGGLE_SIDEBAR' })
+  }, [narrow, dispatch])
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   const [showShortcuts, setShowShortcuts]       = useState(false)
   const [showCommandPalette, setCommandPalette] = useState(false)
@@ -90,6 +99,13 @@ const AppInner = () => {
 
   const { view, detailOpen, loading } = state
 
+  const sidebarProps = {
+    onNewProject: () => { setDrawerOpen(false); setProjectEditor('new') },
+    onEditProject: (p) => { setDrawerOpen(false); setProjectEditor(p) },
+    onNewTag: () => { setDrawerOpen(false); setTagEditor('new') },
+    onEditTag: (t) => { setDrawerOpen(false); setTagEditor(t) },
+  }
+
   const isCalendar = view === 'calendar'
   const isStats = view === 'stats'
 
@@ -108,20 +124,19 @@ const AppInner = () => {
       <Header
         onShowShortcuts={() => setShowShortcuts(true)}
         onOpenCommandPalette={() => setCommandPalette(true)}
+        sidebarVisible={narrow ? drawerOpen : state.sidebarOpen}
+        onToggleSidebar={toggleSidebar}
       />
 
       {/* Main layout */}
-      <div
-        className="flex"
-        style={{ paddingTop: 56, height: '100vh' }}
-      >
-        {/* Sidebar */}
-        <Sidebar
-          onNewProject={() => setProjectEditor('new')}
-          onEditProject={(p) => setProjectEditor(p)}
-          onNewTag={() => setTagEditor('new')}
-          onEditTag={(t) => setTagEditor(t)}
-        />
+      <div className="app-body">
+        {/* Sidebar: inline on wide screens, a modal drawer on narrow ones */}
+        {!narrow && state.sidebarOpen && <Sidebar {...sidebarProps} />}
+        {narrow && drawerOpen && (
+          <Drawer label="Navigation" onClose={closeDrawer}>
+            <Sidebar {...sidebarProps} drawer onNavigate={closeDrawer} />
+          </Drawer>
+        )}
 
         {/* Main content */}
         <main className="flex flex-1 min-w-0 overflow-hidden">

@@ -100,13 +100,14 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - **Pre-existing bugs fixed:** the palette's highlighted row and the row Enter ran could disagree (grouped vs flat order); "Most productive day: Sun" was shown with no completions.
 - **Verified:** the axe sweep now also covers 8 open states (detail panel, filters, palette, shortcuts, project dialog, header menu, context menu, focus mode). **0 violations in all 28 theme variants (14 themes ± high contrast) × 7 views + 8 states** at 1280px (baseline was 78 in just 2 themes). 18/18 interaction checks pass (5 new: arrow keys, focus in/out of the detail panel, Space completes, combobox active option, calendar arrow keys, focus-mode dialog). Menus are portalled into `<main>` so they sit inside a landmark.
 
-### Batch 6 — Layout and responsiveness ⬜
-- [ ] Header as 3-column grid (`auto | minmax(0,1fr) | auto`); check 1280 / 1100 / 900 / 390px for overlap
-- [ ] ≤ 768px: sidebar becomes an overlay drawer; detail panel becomes a full-screen sheet
-- [ ] No horizontal page scroll at 390px in every view (calendar, stats, list)
-- [ ] Menus/dialogs stay inside the viewport at every width
-- [ ] Motion ≤ 320ms; reduced motion respected everywhere (incl. smooth scroll, pulsing dots)
-- [ ] `no-print` on chrome + a clean print style for task lists
+### Batch 6 — Layout and responsiveness ✅
+- [x] Header as 3-column grid (`auto | minmax(0,1fr) | auto`); check 1280 / 1100 / 900 / 390px for overlap
+- [x] ≤ 768px: sidebar becomes an overlay drawer; detail panel becomes a full-screen sheet
+- [x] No horizontal page scroll at 390px in every view (calendar, stats, list)
+- [x] Menus/dialogs stay inside the viewport at every width
+- [x] Motion ≤ 320ms; reduced motion respected everywhere (incl. smooth scroll, pulsing dots)
+- [x] `no-print` on chrome + a clean print style for task lists
+- **Notes:** The sweep now flags anything sticking out past the viewport or cut off by a clipping parent, plus overlapping header groups. Run first, that found what the baseline missed: list headers, calendar toolbar and stats cards running off-screen at 390px. After the change: **0 problems at 1280 / 1100 / 900 / 390** in light, dark, sepia+hc, neon-rainbow and dark+hc, including all open states (detail sheet, drawer, palette, dialogs, menus, focus mode). Narrow screens use a separate `drawerOpen` state (no resize effects); the desktop sidebar preference is untouched. On phones, opening a task moves focus to the sheet heading, not the title field, so the on-screen keyboard doesn't pop up. 4 new phone interaction checks; 22/22 pass. All animations ≤ 300ms (the only longer ones are the decorative timer/mic pulses, switched off under reduced motion). Also fixed: the sidebar toggle showed a permanent hover circle (the "expanded" style is now limited to menu triggers).
 
 ### Batch 7 — Never lose data ⬜
 - [ ] Delete task → toast with **Undo** (no confirm dialog); deletes subtasks with the parent and restores them on undo (bug 4)
@@ -179,4 +180,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 2 — Tokens & themes | 2026-11-26 | `9d2205c` | lint ✔ · 31 tests ✔ · build ✔ · contrast audit 0 fails · axe contrast 0 in 28 variants |
 | 3 — Icons | 2026-11-26 | `2487e04` | lint ✔ · 31 tests ✔ · build ✔ · JSX tag check ✔ · icon scan 0 in 5 themes |
 | 4 — Shared components | 2026-11-26 | `a43a2da` | lint ✔ · 31 tests ✔ · build ✔ · 13/13 interaction checks ✔ · only Batch-5 axe items left |
-| 5 — Accessibility | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · 18/18 interactions ✔ · axe 0 in 28 variants × 15 views/states |
+| 5 — Accessibility | 2026-11-26 | `d9e6e97` | lint ✔ · 31 tests ✔ · build ✔ · 18/18 interactions ✔ · axe 0 in 28 variants × 15 views/states |
+| 6 — Layout & responsive | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · 22/22 interactions ✔ · 0 problems at 4 widths |

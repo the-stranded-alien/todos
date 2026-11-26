@@ -65,7 +65,7 @@ export const CalendarView = () => {
   for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
 
   return (
-    <div className="flex-1 overflow-auto p-4 cal-view">
+    <div className="flex-1 overflow-auto p-4 cal-view" role="region" aria-labelledby="cal-title" tabIndex={-1}>
       <div className="flex items-center justify-between mb-4 gap-2">
         <h1 id="cal-title" style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.3rem' }}>
           {MONTHS[month]} {year}
@@ -102,12 +102,12 @@ export const CalendarView = () => {
                       data-today={isToday || undefined}
                       aria-pressed={isSelected}
                       aria-current={isToday ? 'date' : undefined}
-                      aria-label={`${DAY_NAMES[(firstDay + day - 1) % 7]}, ${MONTHS[month]} ${day}${list.length ? `, ${list.length} ${list.length === 1 ? 'task' : 'tasks'}` : ''}`}
                       tabIndex={isSelected || (!selectedDay && (isToday || (day === 1 && !date.startsWith(today.slice(0, 7))))) ? 0 : -1}
                       onClick={() => setSelectedDay(isSelected ? null : day)}
                       onKeyDown={e => onDayKeyDown(e, day)}
                     >
                       <span className="cal-num">{day}</span>
+                      <span className="sr-only">{`, ${DAY_NAMES[(firstDay + day - 1) % 7]} ${MONTHS[month]}${list.length ? `, ${list.length} ${list.length === 1 ? 'task' : 'tasks'}` : ''}`}</span>
                       {open > 0 && <span className="cal-dot" aria-hidden="true">{open}</span>}
                     </button>
                     {list.length > 0 && (

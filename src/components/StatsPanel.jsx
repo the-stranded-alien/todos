@@ -67,8 +67,8 @@ export const StatsPanel = () => {
   const dashoffset = circ * (1 - stats.completionRate)
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <h1 style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.3rem', marginBottom: 24 }}>Statistics</h1>
+    <div className="flex-1 overflow-auto stats-view" role="region" aria-labelledby="stats-title" tabIndex={0}>
+      <h1 id="stats-title" style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '1.3rem', marginBottom: 24 }}>Statistics</h1>
 
       <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         {/* Completion rate */}

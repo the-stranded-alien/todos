@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp, Inbox, Sun, Calendar
 import { EmptyState } from './ui/EmptyState.jsx'
 import { IconButton } from './ui/IconButton.jsx'
 import { Menu } from './ui/Menu.jsx'
-import { focusTaskDetail, moveTaskFocus } from '../utils/focus.js'
+import { focusTaskDetail, focusTaskDetailHeading, moveTaskFocus } from '../utils/focus.js'
+import { NARROW } from '../hooks/useMediaQuery.js'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { TaskRow } from './TaskRow.jsx'
@@ -135,6 +136,7 @@ export const TaskList = ({ quickAddRef }) => {
   const handleSelect    = useCallback((id, opts) => {
     dispatch({ type: 'SELECT_TASK', id })
     if (opts?.focus) focusTaskDetail()
+    else if (window.matchMedia(NARROW).matches) focusTaskDetailHeading()
   }, [dispatch])
   const handleBulkToggle = useCallback((id) => dispatch({ type: 'TOGGLE_BULK', id }), [dispatch])
 
@@ -221,7 +223,7 @@ export const TaskList = ({ quickAddRef }) => {
             trigger={(props) => (
               <button type="button" className="btn btn-ghost" style={{ fontSize: '.8rem', padding: '6px 8px', color: 'var(--text-2)' }} aria-label={`Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label}`} data-tooltip="Sort tasks" {...props}>
                 <ArrowDownUp size={13} />
-                {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
+                <span className="sort-label">{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span>
                 <ChevronDown size={11} />
               </button>
             )}

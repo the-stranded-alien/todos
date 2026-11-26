@@ -10,6 +10,11 @@ export const focusTaskDetail = () => {
   requestAnimationFrame(() => document.getElementById('task-detail-title')?.focus())
 }
 
+// Move focus to the detail panel heading (narrow screens: no on-screen keyboard)
+export const focusTaskDetailHeading = () => {
+  requestAnimationFrame(() => document.getElementById('task-detail-heading')?.focus())
+}
+
 // ↑/↓/Home/End between task title buttons inside a container
 export const moveTaskFocus = (e) => {
   if (!e.target.classList?.contains('task-title')) return

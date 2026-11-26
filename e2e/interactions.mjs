@@ -216,6 +216,57 @@ await check('restore with a bad file shows a plain warning toast (no alert)', as
   assert((await status.textContent()).includes('isn’t valid JSON'), 'toast: ' + await status.textContent())
 })
 
+// ── Phone width ──────────────────────────────────────────
+const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true })
+phone.on('pageerror', e => errors.push(String(e)))
+await phone.goto(BASE)
+const pq = phone.getByRole('textbox', { name: 'Quick add task' })
+await pq.waitFor()
+const noHScroll = () => phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)
+
+await check('phone: sidebar is a drawer; Escape closes it and returns focus', async () => {
+  assert(await phone.getByRole('navigation').count() === 0, 'sidebar visible on load')
+  const toggle = phone.getByRole('button', { name: 'Show sidebar' })
+  await toggle.click()
+  const drawer = phone.getByRole('dialog', { name: 'Navigation' })
+  await drawer.waitFor()
+  assert(await noHScroll(), 'horizontal scroll with drawer open')
+  await phone.keyboard.press('Escape')
+  assert(await drawer.count() === 0, 'drawer still open')
+  assert(await phone.evaluate(() => document.activeElement.getAttribute('aria-label')) === 'Show sidebar', 'focus not returned')
+})
+
+await check('phone: choosing a view closes the drawer', async () => {
+  await phone.getByRole('button', { name: 'Show sidebar' }).click()
+  await phone.getByRole('dialog', { name: 'Navigation' }).getByRole('button', { name: /^Today/ }).click()
+  assert(await phone.getByRole('dialog', { name: 'Navigation' }).count() === 0, 'drawer still open')
+  assert(await phone.getByRole('heading', { level: 1, name: 'Today' }).count() === 1, 'view not changed')
+})
+
+await check('phone: task details open as a full-screen sheet and close', async () => {
+  await pq.fill('Phone task today'); await pq.press('Enter')
+  await phone.locator('.task-title', { hasText: 'Phone task' }).click()
+  const panel = phone.getByRole('complementary', { name: 'Task details' })
+  await panel.waitFor()
+  const box = await panel.boundingBox()
+  assert(Math.round(box.width) === 390, 'sheet width ' + box.width)
+  assert(await noHScroll(), 'horizontal scroll with sheet open')
+  await panel.getByRole('button', { name: 'Close details' }).click()
+  assert(await panel.count() === 0, 'sheet still open')
+})
+
+await check('phone: dialogs and menus fit on screen', async () => {
+  await phone.getByRole('button', { name: 'Download and restore' }).click()
+  const m = await phone.getByRole('menu').boundingBox()
+  assert(m.x >= 0 && m.x + m.width <= 390, 'menu off screen')
+  await phone.keyboard.press('Escape')
+  await phone.getByRole('button', { name: 'Keyboard shortcuts' }).click()
+  const d = await phone.getByRole('dialog').boundingBox()
+  assert(d.x >= 0 && d.x + d.width <= 390, 'dialog off screen')
+  assert(await noHScroll(), 'horizontal scroll with dialog')
+  await phone.keyboard.press('Escape')
+})
+
 await browser.close()
 console.log(results.join('\n'))
 if (errors.length) console.log('console errors:\n' + errors.join('\n'))

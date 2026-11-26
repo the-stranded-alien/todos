@@ -107,16 +107,10 @@ export const TaskDetail = ({ onClose }) => {
     <aside
       aria-label="Task details"
       className="detail-panel flex flex-col h-full anim-slide-in-right overflow-hidden"
-      style={{
-        width: 320,
-        flexShrink: 0,
-        background: 'var(--bg-surface)',
-        borderLeft: '1px solid var(--border)',
-      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <h2 className="detail-label" style={{ margin: 0 }}>Task details</h2>
+        <h2 id="task-detail-heading" tabIndex={-1} className="detail-label" style={{ margin: 0, outline: 'none' }}>Task details</h2>
         <IconButton label="Close details" icon={X} onClick={onClose} tooltipAlign="end" />
       </div>
 

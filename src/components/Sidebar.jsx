@@ -24,9 +24,9 @@ const VIEWS = [
   { id: 'stats',     label: 'Stats',     icon: 'BarChart3' },
 ]
 
-export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) => {
+export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag, onNavigate, drawer = false }) => {
   const { state, dispatch, updateTask } = useStore()
-  const { tasks, projects, view, sidebarOpen } = state
+  const { tasks, projects, view } = state
   const [projectsOpen, setProjectsOpen] = useState(true)
   const [tagsOpen, setTagsOpen] = useState(true)
   const [dragOverId, setDragOverId] = useState(null)
@@ -65,7 +65,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
     return counts
   }, [tasks])
 
-  const setView = useCallback((v) => dispatch({ type: 'SET_VIEW', view: v }), [dispatch])
+  const setView = useCallback((v) => { dispatch({ type: 'SET_VIEW', view: v }); onNavigate?.() }, [dispatch, onNavigate])
 
   const sortedProjects = useMemo(() =>
     [...projects].sort((a, b) => a.order - b.order), [projects])
@@ -84,18 +84,12 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
     if (taskId) updateTask(taskId, { projectId })
   }, [updateTask])
 
-  if (!sidebarOpen) return null
 
   return (
     <nav
       aria-label="Views, projects and tags"
-      className="sidebar flex flex-col h-full overflow-y-auto py-3 no-print"
-      style={{
-        width: 240,
-        flexShrink: 0,
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border)',
-      }}
+      className={`sidebar flex flex-col h-full overflow-y-auto py-3 no-print${drawer ? ' sidebar-drawer' : ''}`}
+
     >
       {/* ── Views ───────────────────────────── */}
       <section className="px-2 mb-4" aria-label="Views">
