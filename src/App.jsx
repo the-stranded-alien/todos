@@ -2,6 +2,9 @@
 import { useRef, useState, useMemo, useEffect } from 'react'
 import { StoreProvider } from './useStore.jsx'
 import { useStore } from './store/context.js'
+import { IconStyleContext } from './icons.jsx'
+import { usePrefs, resolvedTheme } from './prefs.js'
+import { getTheme } from './themes.js'
 import { useHotkeys } from './hooks/useHotkeys.js'
 import { useNotifications } from './hooks/useNotifications.js'
 
@@ -21,6 +24,8 @@ import { TagEditor } from './components/Modals/TagEditor.jsx'
 // ── Inner app (needs store context) ───────────────────────
 const AppInner = () => {
   const { state, dispatch, undo, redo } = useStore()
+  const prefs = usePrefs()
+  const iconStyle = getTheme(resolvedTheme(prefs)).dark ? 'filled' : 'two-tone'
   const quickAddRef = useRef(null)
 
   const [showShortcuts, setShowShortcuts]       = useState(false)
@@ -89,6 +94,7 @@ const AppInner = () => {
   }
 
   return (
+    <IconStyleContext.Provider value={iconStyle}>
     <div className="app-shell">
       {/* Header */}
       <Header
@@ -156,6 +162,7 @@ const AppInner = () => {
       {/* Bulk actions */}
       <BulkActionsBar />
     </div>
+    </IconStyleContext.Provider>
   )
 }
 

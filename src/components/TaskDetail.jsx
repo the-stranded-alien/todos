@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   X, Trash2, Play, Square, Calendar, Flag, Tag, Folder, RotateCcw,
   Plus, Eye, EyeOff, ChevronDown
-} from 'lucide-react'
+} from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { getTaskHistory } from '../db.js'
 import { ConfirmDelete } from './Modals/ConfirmDelete.jsx'
@@ -435,6 +435,7 @@ export const TaskDetail = ({ onClose }) => {
         {/* Delete */}
         <button
           className="btn btn-danger w-full"
+          data-feat="danger"
           onClick={() => setShowConfirmDelete(true)}
           aria-label="Delete task"
         >

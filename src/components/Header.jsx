@@ -1,6 +1,6 @@
 // ── Header ─────────────────────────────────────────────────
 import { useRef, useState, useEffect } from 'react'
-import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft } from 'lucide-react'
+import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
 import { getTheme, nextTheme } from '../themes.js'
@@ -120,6 +120,7 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
           <button
             className="btn btn-ghost p-1.5"
             onClick={() => setShowExportMenu(v => !v)}
+            data-feat="success"
             aria-label="Export / Import"
             title="Export / Import"
           >

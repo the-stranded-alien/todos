@@ -1,5 +1,5 @@
 // ── Per-theme icon for the header theme button ────────────
-import { Sun, Moon, BookOpen, Zap, Sunrise, Palette, Snowflake, SunDim, Waves, Leaf } from 'lucide-react'
+import { Sun, Moon, BookOpen, Zap, Sunrise, Palette, Snowflake, SunDim, Waves, Leaf } from '../icons.jsx'
 
 const ICONS = {
   light: Sun, dark: Moon, sepia: BookOpen, ocean: Waves, forest: Leaf, sun: Sunrise,

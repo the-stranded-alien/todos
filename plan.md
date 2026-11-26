@@ -69,12 +69,13 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - [x] Global `prefers-reduced-motion` handling for animations
 - **Notes:** Old `--text-4` was 2.4:1; new tiers pass everywhere. `e2e/contrast.mjs` checks 9 text tokens × 5 surfaces (incl. tinted selected rows) + text-on-accent in 14 themes × high contrast: **0 failing pairs** (first run had 50, mostly accent-on-tint). Axe sweep over all 28 variants × 7 views: **0 `color-contrast`** (baseline 28). User-chosen project/tag colours stay data and render through `tint()`/`ink()` so labels stay readable. Header theme button cycles with a per-theme icon (still Lucide until Batch 3); appearance commands are in the palette until Settings lands (Batch 8). Prefs live in `todos-prefs`; the old `theme` key is migrated. Rainbow/gradient `--frame` used on the focus-mode card. Verified in Chrome: cycling, reload persistence, no console errors.
 
-### Batch 3 — Icons ⬜
-- [ ] Add `@icon-park/react`; `src/icons.jsx` wrapper (`make()`, slot colours, `IconStyleContext`, size → style, `aria-hidden` by default)
-- [ ] Icon CSS mapping slots to theme tokens, dark three-tone `--ip-body`, wrapper guard `.i-icon.ip`
-- [ ] Replace every `lucide-react` import; remove `lucide-react`
-- [ ] Same action ⇒ same icon everywhere; per-feature `--feat` hues
-- [ ] Script check: every `<Capitalised>` JSX tag is imported/declared; browser scan for unmapped `rgb(10, 11, 1–4)` fills
+### Batch 3 — Icons ✅
+- [x] Add `@icon-park/react`; `src/icons.jsx` wrapper (`make()`, slot colours, `IconStyleContext`, size → style, `aria-hidden` by default)
+- [x] Icon CSS mapping slots to theme tokens, dark three-tone `--ip-body`, wrapper guard `.i-icon.ip`
+- [x] Replace every `lucide-react` import; remove `lucide-react`
+- [x] Same action ⇒ same icon everywhere; per-feature `--feat` hues
+- [x] Script check: every `<Capitalised>` JSX tag is imported/declared; browser scan for unmapped `rgb(10, 11, 1–4)` fills
+- **Notes:** `src/icons.jsx` exports the app's existing names (e.g. `ChevronDown` → IconPark `Down`), so components changed only their import path; `lucide-react` removed. Project icons are a shared `PROJECT_ICONS` map (Sidebar and ProjectEditor had separate copies). Pre-existing bug fixed: the Stats nav item showed a folder icon because `BarChart3` was missing from the sidebar map. Icon tiles were taller than wide (inline icon on a text line box) — fixed. `e2e/jsx-tags.mjs` checks every JSX tag resolves; the sweep now scans for unmapped `rgb(10, 11, 1–4)` and stretched wrappers: **0 problems** in light, dark, sepia+hc, neon, dark+hc. Feature hues: danger (delete), success (complete, export), warning (timer). JS bundle +39 kB (34.6 kB gzip total app code).
 
 ### Batch 4 — Shared components and interaction patterns ⬜
 - [ ] `useDialogKeys` + `Dialog` (`role="dialog"`, `aria-modal`, `aria-labelledby`, backdrop mouse-down closes, Escape, focus once, focus return)
@@ -171,4 +172,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | Batch | Date | Commit | Verified |
 |---|---|---|---|
 | 1 — Tooling & quick fixes | 2026-11-26 | `633f7f4` | lint ✔ · 27 tests ✔ · build ✔ · Chrome sweep ran (baseline recorded) |
-| 2 — Tokens & themes | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · contrast audit 0 fails · axe contrast 0 in 28 variants |
+| 2 — Tokens & themes | 2026-11-26 | `9d2205c` | lint ✔ · 31 tests ✔ · build ✔ · contrast audit 0 fails · axe contrast 0 in 28 variants |
+| 3 — Icons | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · JSX tag check ✔ · icon scan 0 in 5 themes |

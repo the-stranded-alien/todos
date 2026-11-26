@@ -2,16 +2,15 @@
 import { useMemo, useState, useCallback } from 'react'
 import {
   Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Calendar, BarChart3,
-  Plus, Folder, ChevronDown, ChevronRight, Pencil,
-  Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee
-} from 'lucide-react'
+  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS,
+} from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO } from '../utils/dates.js'
 import { tint, ink } from '../utils/colors.js'
 
 const ICON_MAP = {
-  Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee,
-  Inbox, LayoutList, Sun, CalendarDays, Calendar, CheckCircle2
+  ...PROJECT_ICONS,
+  Inbox, LayoutList, Sun, CalendarDays, Calendar, CheckCircle2, BarChart3,
 }
 
 const VIEWS = [
@@ -181,7 +180,7 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
               onDrop={e => handleDrop(e, project.id)}
               onDragLeave={() => setDragOverId(null)}
             >
-              <div className="rounded p-1" style={{ background: tint(project.color), color: ink(project.color) }}>
+              <div className="rounded p-1 flex" style={{ background: tint(project.color), color: ink(project.color) }}>
                 <Ic size={12} />
               </div>
               <span className="flex-1 truncate" style={{ color: active ? 'var(--accent)' : 'var(--text-2)', fontSize: '.875rem', fontWeight: active ? 600 : 400 }}>

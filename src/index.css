@@ -163,6 +163,20 @@ html.high-contrast {
   --scroll-thumb: var(--border-strong);
 }
 
+/* ── Icon colour mapping (IconPark placeholder slots → tokens) ── */
+:root {
+  --ip-stroke: currentColor;  --ip-tone: var(--feat, var(--accent));  --ip-tone-opacity: .32;
+  --ip-on-fill: var(--bg-card);  --ip-pop: #f59e0b;
+  --ip-mc-stroke: color-mix(in srgb, var(--feat, var(--accent)) 45%, #14102a);
+  --ip-mc-fill: var(--feat, var(--accent));  --ip-mc-inner-stroke: #fff;  --ip-mc-inner-fill: var(--ip-pop);
+}
+.dark {
+  --ip-mc-stroke: color-mix(in srgb, var(--feat, var(--accent)) 35%, #fff);
+  --ip-mc-inner-stroke: #15112b;  --ip-pop: #fbbf24;  --ip-tone-opacity: .4;
+  --ip-body: color-mix(in srgb, var(--feat, var(--accent)) 70%, currentColor);
+}
+html.high-contrast { --ip-tone-opacity: .55; --ip-mc-stroke: var(--text-1); --ip-mc-inner-stroke: var(--bg-card); }
+
 /* Density */
 [data-density="compact"] { --row-py: 4px; --nav-py: 5px; }
 
@@ -476,3 +490,31 @@ body { background: var(--bg-app); }
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Icons ────────────────────────────────────────────────── */
+.i-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 0; vertical-align: middle; }
+.i-icon svg { display: block; }
+.ip [stroke="#0a0b01"] { stroke: var(--ip-stroke); }
+.ip [fill="#0a0b01"] { fill: var(--ip-stroke); }
+.ip-two-tone [fill="#0a0b02"], .ip-two-tone [fill="#0a0b04"] { fill: var(--ip-tone); fill-opacity: var(--ip-tone-opacity); }
+.ip-two-tone [stroke="#0a0b03"] { stroke: var(--ip-stroke); }
+.ip-filled [fill="#0a0b01"] { fill: var(--ip-body, var(--ip-stroke)); }
+.ip-filled [fill="#FFF" i] { fill: var(--ip-on-fill); }
+.ip-filled [stroke="#FFF" i] { stroke: var(--ip-on-fill); }
+.ip-multi-color [stroke="#0a0b01"] { stroke: var(--ip-mc-stroke); }
+.ip-multi-color [fill="#0a0b01"] { fill: var(--ip-mc-stroke); }
+.ip-multi-color [fill="#0a0b02"] { fill: var(--ip-mc-fill); }
+.ip-multi-color [stroke="#0a0b02"] { stroke: var(--ip-mc-fill); }
+.ip-multi-color [stroke="#0a0b03"] { stroke: var(--ip-mc-inner-stroke); }
+.ip-multi-color [fill="#0a0b03"] { fill: var(--ip-mc-inner-stroke); }
+.ip-multi-color [fill="#0a0b04"] { fill: var(--ip-mc-inner-fill); }
+.ip-multi-color [stroke="#0a0b04"] { stroke: var(--ip-mc-inner-fill); }
+html.high-contrast .ip svg { stroke-width: 3.4; }
+/* Guard: icon wrappers must never pick up styles written for text spans. */
+.i-icon.ip { flex: none !important; padding: 0 !important; background: none !important; border: 0 !important; min-width: 0 !important; }
+
+/* Per-feature hues */
+[data-feat="danger"]  { --feat: var(--danger); }
+[data-feat="success"] { --feat: var(--success); }
+[data-feat="warning"] { --feat: var(--warning); }
+[data-feat="info"]    { --feat: var(--info); }

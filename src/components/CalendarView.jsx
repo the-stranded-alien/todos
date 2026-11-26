@@ -1,6 +1,6 @@
 // ── Calendar view ──────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
 

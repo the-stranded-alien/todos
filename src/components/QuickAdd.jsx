@@ -1,6 +1,6 @@
 // ── Quick Add bar ──────────────────────────────────────────
 import { useState, useCallback } from 'react'
-import { Plus, Mic, MicOff, Calendar, Flag, Hash, AtSign } from 'lucide-react'
+import { Plus, Mic, MicOff, Calendar, Flag, Hash, AtSign } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
 import { parseTaskInput } from '../utils/nlpParse.js'

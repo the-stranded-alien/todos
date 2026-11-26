@@ -1,6 +1,6 @@
 // ── Bulk actions bar ───────────────────────────────────────
 import { useState } from 'react'
-import { CheckCircle2, Trash2, FolderInput, Tag, X } from 'lucide-react'
+import { CheckCircle2, Trash2, FolderInput, Tag, X } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 
 export const BulkActionsBar = () => {
@@ -21,6 +21,7 @@ export const BulkActionsBar = () => {
       <button
         className="btn btn-ghost p-1.5"
         onClick={bulkComplete}
+        data-feat="success"
         aria-label="Complete selected"
         title="Complete selected"
         style={{ fontSize: '.8rem' }}
@@ -85,6 +86,7 @@ export const BulkActionsBar = () => {
       <button
         className="btn btn-danger p-1.5"
         onClick={bulkDelete}
+        data-feat="danger"
         aria-label="Delete selected"
         title="Delete selected"
       >

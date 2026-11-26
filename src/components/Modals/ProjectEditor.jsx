@@ -1,11 +1,9 @@
 // ── Project editor modal ───────────────────────────────────
 import { useState } from 'react'
-import { X, Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee } from 'lucide-react'
+import { X, Folder, PROJECT_ICONS as ICON_MAP, PROJECT_ICON_NAMES as ICONS } from '../../icons.jsx'
 import { useStore } from '../../store/context.js'
 import { SWATCHES, DEFAULT_SWATCH, tint, ink } from '../../utils/colors.js'
 
-const ICONS = ['Folder','Star','Briefcase','Home','Heart','Book','Code','Music','Camera','Coffee']
-const ICON_MAP = { Folder, Star, Briefcase, Home, Heart, Book, Code, Music, Camera, Coffee }
 
 export const ProjectEditor = ({ project, onClose }) => {
   const { createProject, updateProject } = useStore()
@@ -43,7 +41,7 @@ export const ProjectEditor = ({ project, onClose }) => {
 
         {/* Preview */}
         <div className="flex items-center gap-3 mb-5 p-3 rounded-xl" style={{ background: 'var(--bg-surface)' }}>
-          <div className="rounded-lg p-2" style={{ background: tint(color), color: ink(color) }}>
+          <div className="rounded-lg p-2 flex" style={{ background: tint(color), color: ink(color) }}>
             <IconComp size={20} />
           </div>
           <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{name || 'Project Name'}</span>

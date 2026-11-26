@@ -1,5 +1,5 @@
 // ── Confirm delete modal ───────────────────────────────────
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from '../../icons.jsx'
 
 export const ConfirmDelete = ({ message, onConfirm, onCancel }) => (
   <div

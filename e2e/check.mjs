@@ -64,7 +64,20 @@ for (const width of WIDTHS) {
         const r = await window.axe.run(document, { resultTypes: ['violations'] })
         return r.violations.map(v => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes[0]?.target?.join(' ') }))
       })
+      const iconProblems = await page.evaluate(() => {
+        const out = []
+        for (const el of document.querySelectorAll('.i-icon svg *')) {
+          const cs = getComputedStyle(el)
+          for (const v of [cs.fill, cs.stroke]) if (/rgb\(10, 11, [1-4]\)/.test(v)) { out.push(`unmapped ${v} in ${el.closest('.i-icon').className}`); break }
+        }
+        for (const el of document.querySelectorAll('.i-icon')) {
+          const r = el.getBoundingClientRect(), svg = el.querySelector('svg')?.getBoundingClientRect()
+          if (svg && (r.width > svg.width + 2 || r.height > svg.height + 2)) out.push(`stretched ${el.className} ${Math.round(r.width)}x${Math.round(r.height)}`)
+        }
+        return [...new Set(out)]
+      })
       const tag = `${width}/${theme}/${view}`
+      for (const p of iconProblems) failures.push(`${tag}: icon ${p}`)
       await page.screenshot({ path: `${OUT}/${width}-${theme}-${view}.png` })
       if (hscroll) failures.push(`${tag}: horizontal scroll`)
       for (const v of res) failures.push(`${tag}: axe ${v.id} (${v.impact}) ×${v.n} e.g. ${v.sample}`)

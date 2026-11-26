@@ -1,6 +1,6 @@
 // ── Task row ───────────────────────────────────────────────
 import { useState, useCallback } from 'react'
-import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw } from 'lucide-react'
+import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { useElapsed } from '../hooks/useElapsed.js'
@@ -235,6 +235,7 @@ export const TaskRow = ({
         <button
           className="opacity-0 group-hover:opacity-100"
           onClick={handleTimerToggle}
+          data-feat="warning"
           aria-label={isTimerRunning ? 'Stop timer' : 'Start timer'}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4,

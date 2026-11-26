@@ -1,6 +1,6 @@
 // ── Task list ──────────────────────────────────────────────
 import { useMemo, useState, useCallback, useRef } from 'react'
-import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp } from 'lucide-react'
+import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { TaskRow } from './TaskRow.jsx'

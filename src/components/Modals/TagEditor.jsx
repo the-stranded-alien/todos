@@ -1,6 +1,6 @@
 // ── Tag editor modal ───────────────────────────────────────
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X } from '../../icons.jsx'
 import { useStore } from '../../store/context.js'
 import { SWATCHES, DEFAULT_SWATCH, tint, ink } from '../../utils/colors.js'
 

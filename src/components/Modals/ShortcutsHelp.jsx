@@ -1,5 +1,5 @@
 // ── Keyboard shortcuts help modal ──────────────────────────
-import { X } from 'lucide-react'
+import { X } from '../../icons.jsx'
 
 const SHORTCUTS = [
   { key: 'n', desc: 'Focus quick-add input' },

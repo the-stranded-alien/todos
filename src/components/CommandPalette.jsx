@@ -1,6 +1,6 @@
 // ── Command palette ────────────────────────────────────────
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare } from 'lucide-react'
+import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
 import { availableThemes } from '../themes.js'
