@@ -163,6 +163,87 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 
 ---
 
+## Next: top 10 features to build ⬜
+
+Ranked by value to users. Every feature keeps the app's principles: **no server**, works offline, everything undoable, feature-detected with a fallback. Size is rough: **S** ≈ one batch, **M** ≈ two, **L** ≈ three or more. Each one ships the same way as Batches 1–11: unit tests + real-Chrome checks + axe in every theme, then commit and push.
+
+| # | Feature | Why it matters | Size |
+|---|---|---|---|
+| 1 | Trash and task history | Strongest "never lose data" guarantee | S |
+| 2 | Sync across devices through a folder | Biggest gap today: data is stuck on one device | L |
+| 3 | Reliable reminders + calendar (.ics) | Reminders only fire while the app is open | M |
+| 4 | Flexible repeats | "Every weekday", "2nd Tuesday", "3 days after done" | M |
+| 5 | Smart lists (saved filters) | Custom views without new code per view | S |
+| 6 | Board view (Kanban) | A second way to see and move work | M |
+| 7 | Plan my day | Turns a long list into a realistic day | M |
+| 8 | Pomodoro in focus mode | Builds on timers and focus mode already there | S |
+| 9 | Share a list by link; Markdown / todo.txt import-export | Collaboration and portability without a server | M |
+| 10 | On-device AI: smart quick-add and weekly review | Extends the Batch 10 AI with real daily value | M |
+
+### 1. Trash and task history ⬜ (S)
+- [ ] Deleted tasks go to **Trash** (kept 30 days; Restore / Delete permanently… with confirm + Undo), not straight out of IndexedDB
+- [ ] Per-task **version history**: field-level snapshots already logged in `history`; show "Restore this version" in the Activity section
+- [ ] Trash and history included in backups; "Empty trash" in Settings → Storage
+- Guidelines: §1 never lose data, §9 version history before risky operations
+
+### 2. Sync across devices through a folder ⬜ (L)
+- [ ] Settings → Storage → **Sync to a folder** (`showDirectoryPicker`): one JSON file per task + a manifest, so a Dropbox/iCloud/OneDrive/Syncthing folder carries data between devices with no server
+- [ ] Write after a 1.2s pause, pull on focus and `visibilitychange`, `FileSystemObserver` where available; one sync at a time with a single queued follow-up
+- [ ] Remember last-written text per path across reloads; renames and deletes handled as in the guidelines; conflicts never overwrite silently (banner: Use folder version / Compare / Keep mine)
+- [ ] Header sync-status icon with coloured dot; re-request permission from a click
+- [ ] Fallback when unsupported (Safari/Firefox): explain, and offer scheduled backup reminders instead
+- Tests: OPFS as a stand-in disk (guideline §12), in-memory directory-handle mock for unit tests
+- Guidelines: §9 sync to a folder, §10 file system APIs
+
+### 3. Reliable reminders + calendar ⬜ (M)
+- [ ] Reminder per task (at due time, or 10 min / 1 h / 1 day before), separate from the due date
+- [ ] While open: precise timers in the page; when closed: best available (`showTrigger` where supported, Periodic Background Sync for installed apps), with a clear note of what each browser can do
+- [ ] **Add to calendar**: download `.ics` for one task or all dated tasks, so the OS calendar handles alarms reliably
+- [ ] Snooze from the notification (actions: Done, Snooze 10 min)
+- Guidelines: §10 feature detection with fallbacks, §13 say plainly what works where
+
+### 4. Flexible repeats ⬜ (M)
+- [ ] Every N days/weeks/months/years; specific weekdays; "2nd Tuesday", "last weekday of the month"
+- [ ] Repeat from the due date **or** from completion ("3 days after I finish")
+- [ ] End after N times or on a date; skip one occurrence
+- [ ] Quick-add understands "every weekday", "every 2 weeks on fri", "monthly on the 15th"
+- [ ] Tested with fake timers across month ends, DST and leap years
+
+### 5. Smart lists (saved filters) ⬜ (S)
+- [ ] Save the current search + filters + sort as a named list in the sidebar (icon, colour)
+- [ ] Rules: project, tag (any/all), priority, due (overdue/today/this week/none), has notes, has timer time
+- [ ] Shown in the palette; included in backups and sync
+
+### 6. Board view (Kanban) ⬜ (M)
+- [ ] Columns by status (To do / Doing / Done), by priority, or by project; drag cards between columns (keyboard alternative: "Move to…" menu, arrow keys)
+- [ ] "Doing" as an optional status field (works with timers: starting a timer moves the card to Doing)
+- [ ] Horizontal scroll at phone width with one column per screen; portal tooltips (guideline §6)
+
+### 7. Plan my day ⬜ (M)
+- [ ] Morning prompt (optional): pick tasks for today from overdue, due-soon and suggested
+- [ ] Time estimates per task; a running total against available hours; warns when overbooked
+- [ ] Optional time-blocks: drag tasks onto a simple day timeline; end-of-day "roll over unfinished" with Undo
+- [ ] Uses tracked time from timers to show estimate vs actual in Stats
+
+### 8. Pomodoro in focus mode ⬜ (S)
+- [ ] 25/5 (configurable) work/break cycles in focus mode, tied to the task timer
+- [ ] Gentle sound + notification at the end of each cycle (respects reduce motion and a mute switch)
+- [ ] Session count and focus minutes in Stats; screen stays awake (wake lock already there)
+
+### 9. Share a list by link; Markdown / todo.txt ⬜ (M)
+- [ ] **Share link**: a project or selection compressed into the URL fragment (no server; nothing leaves the device until the user sends the link). Opening it shows a read-only preview with "Add to my tasks"
+- [ ] Export a project as a Markdown checklist (`- [ ] task`) or todo.txt; copy to clipboard
+- [ ] Import: paste or drop Markdown checklists / todo.txt / plain lines; preview before adding; one undo step
+- Guidelines: §1 "a share link carries the document inside the URL itself", §10 clipboard
+
+### 10. On-device AI: smart quick-add and weekly review ⬜ (M)
+- [ ] **Smart quick-add**: paste messy text (an email, meeting notes) → on-device model extracts tasks with dates/priorities; review checklist before adding (fallback: one task per line + existing date parser)
+- [ ] **Weekly review**: `Summarizer` writes a short summary of what got done, what slipped and what's next, shown in Stats (fallback: a templated summary from the numbers)
+- [ ] Same rules as Batch 10: availability check, download progress, Cancel, "Use quick version", "Hide AI features", nothing leaves the device
+- Guidelines: §11 on-device AI
+
+---
+
 ## Release checklist (from guidelines)
 
 - [x] Tokens only: no hard-coded colours; new surfaces work in all themes and high contrast
@@ -199,4 +280,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 8 — Settings & Help | 2026-11-26 | `1b12329` | lint ✔ · 55 tests ✔ · build ✔ · 32/32 interactions ✔ · axe 0 incl. Settings/Help |
 | 9 — PWA & platform | 2026-11-26 | `571f7b3` | lint ✔ · 55 tests ✔ · build ✔ · 6/6 PWA checks ✔ · 32/32 interactions ✔ · axe 0 |
 | 10 — On-device AI | 2026-11-26 | `ef78176` | lint ✔ · 63 tests ✔ · build ✔ · 34/34 interactions ✔ (AI path mocked) · axe 0 |
-| 11 — Final sweep | 2026-11-26 | _see git log_ | lint ✔ · 64 tests ✔ · build ✔ · 34 interactions · 21-step walk-through · 6 PWA · axe 0 at 1280 + 390 × 28 variants |
+| 11 — Final sweep | 2026-11-26 | `57b0e94` | lint ✔ · 64 tests ✔ · build ✔ · 34 interactions · 21-step walk-through · 6 PWA · axe 0 at 1280 + 390 × 28 variants |
