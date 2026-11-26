@@ -11,7 +11,7 @@ import {
   Leaf as PLeaf, Microphone, VoiceOff, Moon as PMoon, Music as PMusic, Platte, MenuUnfoldOne, MenuFoldOne,
   Play as PPlay, Square as PSquare, Plus as PPlus, LoopOnce, RowHeight, Search as PSearch, Snowflake as PSnowflake,
   Star as PStar, Sun as PSun, SunOne, Sunrise as PSunrise, TagOne, Delete, Upload as PUpload, Waves as PWaves,
-  Close, Lightning, Inbox as PInbox, ChartHistogram, Edit, PreviewOpen, PreviewClose,
+  Close, Lightning, Inbox as PInbox, ChartHistogram, Edit, PreviewOpen, PreviewClose, Copy as PCopy,
 } from '@icon-park/react'
 
 const SLOTS = ['#0a0b01', '#0a0b02', '#0a0b03', '#0a0b04'] // outer stroke, outer fill, inner stroke, inner fill
@@ -55,6 +55,7 @@ export const ChevronDown = make(Down, 'ChevronDown')
 export const ChevronLeft = make(Left, 'ChevronLeft')
 export const ChevronRight = make(Right, 'ChevronRight')
 export const Code = make(PCode, 'Code')
+export const Copy = make(PCopy, 'Copy')
 export const Coffee = make(Cup, 'Coffee')
 export const Command = make(PCommand, 'Command')
 export const Contrast = make(PContrast, 'Contrast')

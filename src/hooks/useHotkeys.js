@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 export const useHotkeys = (handlers) => {
   useEffect(() => {
     const onKeyDown = (e) => {
+      if (e.defaultPrevented) return
       // Skip if typing in an input/textarea (unless explicitly handled)
       const tag = document.activeElement?.tagName
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'

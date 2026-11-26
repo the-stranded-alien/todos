@@ -1,6 +1,9 @@
 // ── Task list ──────────────────────────────────────────────
 import { useMemo, useState, useCallback, useRef } from 'react'
-import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp } from '../icons.jsx'
+import { ChevronDown, ChevronRight, X, Filter, ArrowDownUp, Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Search, Folder, Tag } from '../icons.jsx'
+import { EmptyState } from './ui/EmptyState.jsx'
+import { IconButton } from './ui/IconButton.jsx'
+import { Menu } from './ui/Menu.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { TaskRow } from './TaskRow.jsx'
@@ -14,28 +17,20 @@ const SORT_OPTIONS = [
   { value: 'title',     label: 'Alphabetical' },
 ]
 
-const EmptyState = ({ view }) => {
-  const messages = {
-    inbox:     { title: 'All clear.', sub: 'Your inbox is empty — add a task above.' },
-    today:     { title: 'Nothing due today.', sub: 'Enjoy your day, or add something above.' },
-    upcoming:  { title: 'No upcoming tasks.', sub: 'Everything is clear for the next 7 days.' },
-    all:       { title: 'No tasks yet.', sub: 'Start by adding a task above.' },
-    completed: { title: 'No completed tasks yet.', sub: 'Complete a task to see it here.' },
-  }
-  const base = view.startsWith('project:') ? { title: 'No tasks in this project.', sub: 'Add a task above to get started.' }
-    : view.startsWith('tag:') ? { title: 'No tasks with this tag.', sub: '' }
-    : messages[view] || { title: 'No tasks.', sub: '' }
+const EMPTY = {
+  inbox:     { icon: Inbox,        title: 'All clear.',               sub: 'Your inbox is empty. Add a task above.' },
+  today:     { icon: Sun,          title: 'Nothing due today.',       sub: 'Enjoy your day, or add something above.' },
+  upcoming:  { icon: CalendarDays, title: 'No upcoming tasks.',       sub: 'Nothing is due in the next 7 days.' },
+  all:       { icon: LayoutList,   title: 'No tasks yet.',            sub: 'Start by adding a task above.' },
+  completed: { icon: CheckCircle2, title: 'No completed tasks yet.',  sub: 'Tasks you complete show up here.' },
+}
 
-  return (
-    <div className="flex flex-col items-center justify-center py-24 px-8 text-center anim-fade-in">
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" style={{ marginBottom: 20, opacity: 0.35 }}>
-        <circle cx="36" cy="36" r="34" stroke="var(--border-strong)" strokeWidth="2" />
-        <path d="M22 36l10 10 18-18" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <p style={{ color: 'var(--text-2)', fontWeight: 600, fontSize: '.95rem', marginBottom: 6 }}>{base.title}</p>
-      {base.sub && <p style={{ color: 'var(--text-4)', fontSize: '.825rem' }}>{base.sub}</p>}
-    </div>
-  )
+const ViewEmpty = ({ view, searching }) => {
+  if (searching) return <EmptyState icon={Search} title="No matching tasks.">Try a different word, or clear the search.</EmptyState>
+  const e = view.startsWith('project:') ? { icon: Folder, title: 'No tasks in this project.', sub: 'Add a task above to get started.' }
+    : view.startsWith('tag:') ? { icon: Tag, title: 'No tasks with this tag.', sub: 'Add #tagname to a task to tag it.' }
+    : EMPTY[view] ?? { icon: CheckCircle2, title: 'No tasks.', sub: '' }
+  return <EmptyState icon={e.icon} title={e.title}>{e.sub}</EmptyState>
 }
 
 export const TaskList = ({ quickAddRef }) => {
@@ -197,47 +192,38 @@ export const TaskList = ({ quickAddRef }) => {
               className="tag-chip"
               style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)', cursor: 'pointer' }}
               onClick={() => dispatch({ type: 'CLEAR_FILTERS' })}
+              aria-label={`Clear ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}`}
+              data-tooltip="Clear filters"
             >
               {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} <X size={10} />
             </button>
           )}
 
-          {/* Filter toggle */}
-          <button
-            className="btn btn-ghost p-1.5"
+          <IconButton
+            label="Filters"
+            icon={Filter}
+            pressed={showFilters}
+            aria-controls={showFilters ? "filter-bar" : undefined}
             onClick={() => setShowFilters(v => !v)}
-            aria-label="Toggle filters"
-            style={{ color: showFilters ? 'var(--accent)' : 'var(--text-3)' }}
-          >
-            <Filter size={15} />
-          </button>
+          />
 
-          {/* Sort */}
-          <div className="relative flex items-center gap-1" style={{ color: 'var(--text-3)' }}>
-            <ArrowDownUp size={13} style={{ flexShrink: 0 }} />
-            <select
-              value={sortBy}
-              onChange={e => dispatch({ type: 'SET_SORT', sortBy: e.target.value })}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-3)',
-                fontSize: '.8rem',
-                cursor: 'pointer',
-                outline: 'none',
-                appearance: 'none',
-                paddingRight: 4,
-              }}
-              aria-label="Sort by"
-            >
-              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
+          <Menu
+            label="Sort by"
+            align="end"
+            items={SORT_OPTIONS.map(o => ({ label: o.label, checked: sortBy === o.value, onSelect: () => dispatch({ type: 'SET_SORT', sortBy: o.value }) }))}
+            trigger={(props) => (
+              <button type="button" className="btn btn-ghost" style={{ fontSize: '.8rem', padding: '6px 8px', color: 'var(--text-2)' }} aria-label={`Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label}`} data-tooltip="Sort tasks" {...props}>
+                <ArrowDownUp size={13} />
+                {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
+                <ChevronDown size={11} />
+              </button>
+            )}
+          />
         </div>
 
         {/* Filter bar */}
         {showFilters && (
-          <div className="anim-slide-up flex flex-wrap gap-2 mb-4 p-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div id="filter-bar" role="group" aria-label="Filters" className="anim-slide-up flex flex-wrap gap-2 mb-4 p-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <select
               value={filters.priority ?? ''}
               onChange={e => dispatch({ type: 'SET_FILTER', filters: { priority: e.target.value === '' ? null : Number(e.target.value) } })}
@@ -294,7 +280,7 @@ export const TaskList = ({ quickAddRef }) => {
 
         {/* Upcoming: grouped by date */}
         {upcomingGroups ? (
-          upcomingGroups.length === 0 ? <EmptyState view={view} /> :
+          upcomingGroups.length === 0 ? <ViewEmpty view={view} searching={!!searchQuery} /> :
           upcomingGroups.map(([date, dateTasks]) => (
             <div key={date} className="mb-5">
               <div style={{ color: 'var(--text-4)', fontSize: '.72rem', fontWeight: 700, letterSpacing: '.06em', padding: '0 4px 6px', textTransform: 'uppercase' }}>
@@ -314,7 +300,7 @@ export const TaskList = ({ quickAddRef }) => {
           ))
         ) : (
           <>
-            {activeTasks.length === 0 && view !== 'completed' && <EmptyState view={view} />}
+            {activeTasks.length === 0 && view !== 'completed' && <ViewEmpty view={view} searching={!!searchQuery} />}
             {activeTasks.map(task => (
               <TaskRow
                 key={task.id}
@@ -360,7 +346,7 @@ export const TaskList = ({ quickAddRef }) => {
         {/* Completed view */}
         {view === 'completed' && (
           completedTasks.length === 0
-            ? <EmptyState view={view} />
+            ? <ViewEmpty view={view} searching={!!searchQuery} />
             : completedTasks.map(task => (
               <TaskRow
                 key={task.id}

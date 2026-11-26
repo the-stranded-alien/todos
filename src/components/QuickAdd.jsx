@@ -6,6 +6,7 @@ import { todayISO } from '../utils/dates.js'
 import { parseTaskInput } from '../utils/nlpParse.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import { PRIORITY_VARS, tint } from '../utils/colors.js'
+import { IconButton } from './ui/IconButton.jsx'
 
 const PRIORITY_LABELS = ['none', 'low', 'med', 'high']
 const PRIORITY_COLORS = PRIORITY_VARS
@@ -52,6 +53,11 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
     // Use view's default due date if no date was parsed from input
     const dueDate = p.dueDate || defaultDueDate || null
 
+    // Clear straight away (no double submits); keep focus here only if the
+    // user hasn't moved on while the task was being saved.
+    const focusedAtSubmit = document.activeElement
+    setValue('')
+    setParsed(null)
     await createTask({
       title: p.title || value.trim(),
       priority: p.priority,
@@ -61,10 +67,8 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
       tags: tagIds,
       order: Date.now(),
     })
-
-    setValue('')
-    setParsed(null)
-    inputRef?.current?.focus()
+    const now = document.activeElement
+    if (now === focusedAtSubmit || now === document.body) inputRef?.current?.focus()
   }, [value, defaultProjectId, defaultDueDate, state.projects, state.tags, createTask, inputRef])
 
   const handleKeyDown = useCallback((e) => {
@@ -109,17 +113,15 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
           aria-label="Quick add task"
         />
         {speechSupported && (
-          <button
-            className={`btn btn-ghost p-1 ${listening ? 'mic-listening' : ''}`}
+          <IconButton
+            label={listening ? 'Stop voice input' : 'Add a task by voice'}
+            icon={listening ? MicOff : Mic}
+            size={14}
+            small
+            pressed={listening}
+            className={listening ? 'mic-listening' : ''}
             onClick={listening ? stopListening : startListening}
-            aria-label={listening ? 'Stop listening' : 'Start voice input'}
-            style={{ borderRadius: '50%', flexShrink: 0 }}
-          >
-            {listening
-              ? <MicOff size={14} style={{ color: 'var(--accent)' }} />
-              : <Mic size={14} style={{ color: 'var(--text-4)' }} />
-            }
-          </button>
+          />
         )}
         {value && (
           <button

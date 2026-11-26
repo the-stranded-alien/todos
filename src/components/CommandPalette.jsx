@@ -1,7 +1,8 @@
 // ── Command palette ────────────────────────────────────────
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare } from '../icons.jsx'
 import { useStore } from '../store/context.js'
+import { Dialog } from './ui/Dialog.jsx'
 import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
 import { availableThemes } from '../themes.js'
 
@@ -43,7 +44,6 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
   const [selected, setSelected] = useState(0)
   const inputRef = useRef(null)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
 
   const items = useMemo(() => {
     if (!query) {
@@ -103,8 +103,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
     if (e.key === 'ArrowDown') { e.preventDefault(); setSelected(s => Math.min(s + 1, items.length - 1)) }
     if (e.key === 'ArrowUp')   { e.preventDefault(); setSelected(s => Math.max(s - 1, 0)) }
     if (e.key === 'Enter')     { e.preventDefault(); if (items[selected]) execute(items[selected]) }
-    if (e.key === 'Escape')    { onClose() }
-  }, [items, selected, execute, onClose])
+  }, [items, selected, execute])
 
   // Group items
   const groups = useMemo(() => {
@@ -119,14 +118,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
   let globalIdx = 0
 
   return (
-    <div
-      className="backdrop fixed inset-0 z-50 flex items-start justify-center pt-24"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div
-        className="anim-drop-in w-full max-w-lg rounded-2xl overflow-hidden"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)' }}
-      >
+    <Dialog title="Command palette" onClose={onClose} hideHeader placement="top" size="md" initialFocus={inputRef} className="overflow-hidden">
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <Search size={17} style={{ color: 'var(--text-4)', flexShrink: 0 }} />
@@ -142,7 +134,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
             }}
             aria-label="Command search"
           />
-          <kbd style={{ color: 'var(--text-4)', fontSize: '.75rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>Esc</kbd>
+          <kbd className="kbd">Esc</kbd>
         </div>
 
         {/* Results */}
@@ -184,7 +176,6 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }

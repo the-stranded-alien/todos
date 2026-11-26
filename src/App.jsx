@@ -20,6 +20,8 @@ import { CommandPalette } from './components/CommandPalette.jsx'
 import { ShortcutsHelp } from './components/Modals/ShortcutsHelp.jsx'
 import { ProjectEditor } from './components/Modals/ProjectEditor.jsx'
 import { TagEditor } from './components/Modals/TagEditor.jsx'
+import { Toaster } from './components/ui/Toaster.jsx'
+import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
 
 // ── Inner app (needs store context) ───────────────────────
 const AppInner = () => {
@@ -64,8 +66,6 @@ const AppInner = () => {
     { key: 'z',  ctrl: true,  shift: false, handler: () => undo() },
     { key: 'z',  ctrl: true,  shift: true,  handler: () => redo() },
     { key: 'Escape', ctrl: false, shift: false, handler: () => {
-        if (showShortcuts) { setShowShortcuts(false); return }
-        if (showCommandPalette) { setCommandPalette(false); return }
         if (focusMode) { setFocusMode(false); return }
         if (state.detailOpen) { dispatch({ type: 'CLOSE_DETAIL' }); return }
       }
@@ -76,7 +76,7 @@ const AppInner = () => {
     { key: '4', ctrl: false, shift: false, handler: () => dispatch({ type: 'SET_VIEW', view: 'all' }) },
     { key: 'f', ctrl: false, shift: false, handler: () => setFocusMode(v => !v) },
     { key: 'F', ctrl: false, shift: true,  handler: () => setFocusMode(v => !v) },
-  ], [dispatch, undo, redo, showShortcuts, showCommandPalette, focusMode, state.detailOpen])
+  ], [dispatch, undo, redo, focusMode, state.detailOpen])
 
   useHotkeys(hotkeys)
 
@@ -161,6 +161,8 @@ const AppInner = () => {
 
       {/* Bulk actions */}
       <BulkActionsBar />
+      <Toaster />
+      <TooltipLayer />
     </div>
     </IconStyleContext.Provider>
   )

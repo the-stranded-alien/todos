@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
+import { IconButton } from './ui/IconButton.jsx'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -60,9 +61,9 @@ export const CalendarView = () => {
           {MONTHS[month]} {year}
         </h2>
         <div className="flex gap-1">
-          <button className="btn btn-ghost p-2" onClick={prevMonth} aria-label="Previous month"><ChevronLeft size={16} /></button>
+          <IconButton label="Previous month" icon={ChevronLeft} onClick={prevMonth} />
           <button className="btn btn-ghost p-2" onClick={() => setViewDate(new Date())} style={{ fontSize: '.8rem' }}>Today</button>
-          <button className="btn btn-ghost p-2" onClick={nextMonth} aria-label="Next month"><ChevronRight size={16} /></button>
+          <IconButton label="Next month" icon={ChevronRight} onClick={nextMonth} tooltipAlign="end" />
         </div>
       </div>
 

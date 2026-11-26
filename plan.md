@@ -77,19 +77,20 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - [x] Script check: every `<Capitalised>` JSX tag is imported/declared; browser scan for unmapped `rgb(10, 11, 1–4)` fills
 - **Notes:** `src/icons.jsx` exports the app's existing names (e.g. `ChevronDown` → IconPark `Down`), so components changed only their import path; `lucide-react` removed. Project icons are a shared `PROJECT_ICONS` map (Sidebar and ProjectEditor had separate copies). Pre-existing bug fixed: the Stats nav item showed a folder icon because `BarChart3` was missing from the sidebar map. Icon tiles were taller than wide (inline icon on a text line box) — fixed. `e2e/jsx-tags.mjs` checks every JSX tag resolves; the sweep now scans for unmapped `rgb(10, 11, 1–4)` and stretched wrappers: **0 problems** in light, dark, sepia+hc, neon, dark+hc. Feature hues: danger (delete), success (complete, export), warning (timer). JS bundle +39 kB (34.6 kB gzip total app code).
 
-### Batch 4 — Shared components and interaction patterns ⬜
-- [ ] `useDialogKeys` + `Dialog` (`role="dialog"`, `aria-modal`, `aria-labelledby`, backdrop mouse-down closes, Escape, focus once, focus return)
-- [ ] Port ProjectEditor, TagEditor, ShortcutsHelp, ConfirmDelete, CommandPalette to `Dialog`
-- [ ] `Menu` (`role="menu"`/`menuitem`, arrows, Escape returns focus, outside click) — used by header Download ▾, sort menu, bulk pickers
-- [ ] Icon buttons: round hover in square hit area (≥ 28px), danger variant, CSS `data-tooltip` (+ `tooltip-start`/`tooltip-end`, hidden while its menu is open); every icon-only button gets `aria-label` + tooltip with the same words
-- [ ] Toast system (`role="status"`, tones, duration, optional **Undo** action); replace `alert()`
-- [ ] Shared `EmptyState` (icon, title, one sentence)
-- [ ] Shortcuts sheet grouped by area; implement Tab / Shift+Tab indent on focused task or remove the entry (bug 5)
-- [ ] Task row context menu (right-click / Shift+F10): Edit, Duplicate, Priority, Move to…, Delete (danger, last)
+### Batch 4 — Shared components and interaction patterns ✅
+- [x] `useDialogKeys` + `Dialog` (`role="dialog"`, `aria-modal`, `aria-labelledby`, backdrop mouse-down closes, Escape, focus once, focus return)
+- [x] Port ProjectEditor, TagEditor, ShortcutsHelp, ConfirmDelete, CommandPalette to `Dialog`
+- [x] `Menu` (`role="menu"`/`menuitem`, arrows, Escape returns focus, outside click) — used by header Download ▾, sort menu, bulk pickers
+- [x] Icon buttons: round hover in square hit area (≥ 28px), danger variant, CSS `data-tooltip` (+ `tooltip-start`/`tooltip-end`, hidden while its menu is open); every icon-only button gets `aria-label` + tooltip with the same words
+- [x] Toast system (`role="status"`, tones, duration, optional **Undo** action); replace `alert()`
+- [x] Shared `EmptyState` (icon, title, one sentence)
+- [x] Shortcuts sheet grouped by area; Tab / Shift+Tab entries **removed** (bug 5) — hijacking Tab on rows would break keyboard navigation
+- [x] Task row context menu (right-click / Shift+F10 / Menu key): Open details, Rename, Duplicate, Priority, Delete (danger, last, with Undo). "Move to…" stays in the bulk bar
+- **Notes:** New primitives in `src/components/ui/` (Dialog, Menu/MenuButton/ContextMenu, IconButton, Toaster, TooltipLayer, EmptyState) and `useDialogKeys` with a dialog stack, so Escape closes only the top dialog. One portal tooltip layer serves every `[data-tooltip]`, so tooltips are never clipped by the scrolling sidebar. Rows: Enter opens, Delete deletes with Undo. `e2e/interactions.mjs` (13 real-Chrome checks: keyboard menus, focus return, outside click, nested Escape, backdrop close, tooltip timing, toast Undo, native text undo, no `alert()`) — **all pass**. Pre-existing bug found by these checks: QuickAdd refocused its input after the async save and stole focus if you'd moved on; fixed. Sidebar rows restructured (a row containing a main button and an edit button), which pulls part of Batch 5 forward. `e2e/jsx-tags.mjs` now also checks that every name imported from `icons.jsx` exists.
 
 ### Batch 5 — Accessibility ⬜
 - [ ] Landmarks: `header`, `nav aria-label="Views"`, `main`, `aside` for detail panel
-- [ ] Sidebar: `aria-current="page"` on the active view; tag/project rows become a `div` with a main button + edit button (no nested interactives)
+- [ ] Sidebar: `aria-current="page"` on the active view (projects/tags ✅ in Batch 4; views still to do); tag/project rows become a `div` with a main button + edit button ✅ (Batch 4)
 - [ ] Task list: list semantics (`ul`/`li`), no invalid `role="row"`; keyboard: ↑/↓ moves focus, Enter opens, Space completes, Delete deletes (with Undo)
 - [ ] Command palette: combobox pattern (`role="combobox"`, `aria-controls`, `aria-expanded`, `aria-activedescendant`, `listbox`/`option`, `aria-selected`), scroll active into view
 - [ ] `aria-pressed` on toggles, live region for counts/timer status, labels for every input/select
@@ -173,4 +174,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 |---|---|---|---|
 | 1 — Tooling & quick fixes | 2026-11-26 | `633f7f4` | lint ✔ · 27 tests ✔ · build ✔ · Chrome sweep ran (baseline recorded) |
 | 2 — Tokens & themes | 2026-11-26 | `9d2205c` | lint ✔ · 31 tests ✔ · build ✔ · contrast audit 0 fails · axe contrast 0 in 28 variants |
-| 3 — Icons | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · JSX tag check ✔ · icon scan 0 in 5 themes |
+| 3 — Icons | 2026-11-26 | `2487e04` | lint ✔ · 31 tests ✔ · build ✔ · JSX tag check ✔ · icon scan 0 in 5 themes |
+| 4 — Shared components | 2026-11-26 | _see git log_ | lint ✔ · 31 tests ✔ · build ✔ · 13/13 interaction checks ✔ · only Batch-5 axe items left |

@@ -1,12 +1,15 @@
 // ── Header ─────────────────────────────────────────────────
-import { useRef, useState, useEffect } from 'react'
-import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft } from '../icons.jsx'
+import { useRef, useEffect } from 'react'
+import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft, X } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
 import { getTheme, nextTheme } from '../themes.js'
 import { ThemeIcon } from './ThemeIcon.jsx'
+import { IconButton } from './ui/IconButton.jsx'
+import { MenuButton } from './ui/Menu.jsx'
 import * as dbUtils from '../db.js'
 import { exportJSON, exportCSV } from '../utils/export.js'
+import { toast } from '../toast.js'
 
 export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
   const { state, dispatch, importData } = useStore()
@@ -16,7 +19,6 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
   const cycleTheme = () => withThemeTransition(() => setPrefs({ theme: upcoming }))
   const searchRef = useRef(null)
   const fileRef = useRef(null)
-  const [showExportMenu, setShowExportMenu] = useState(false)
 
   // Focus search via global event (triggered by '/' hotkey)
   useEffect(() => {
@@ -25,146 +27,94 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette }) => {
     return () => window.removeEventListener('focus-search', focus)
   }, [])
 
-  // Close export menu on outside click
-  useEffect(() => {
-    if (!showExportMenu) return
-    const close = (e) => {
-      if (!e.target.closest('[data-export-menu]')) setShowExportMenu(false)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [showExportMenu])
-
   const handleExportJSON = async () => {
-    const data = await dbUtils.exportAll()
-    exportJSON(data)
-    setShowExportMenu(false)
+    exportJSON(await dbUtils.exportAll())
+    toast({ message: 'Backup downloaded.', tone: 'success' })
   }
 
   const handleExportCSV = async () => {
     const data = await dbUtils.exportAll()
     exportCSV(data.tasks, data.projects, data.tags)
-    setShowExportMenu(false)
+    toast({ message: 'CSV downloaded.', tone: 'success' })
   }
 
   const handleImport = async (e) => {
     const file = e.target.files?.[0]
-    if (!file) return
-    const text = await file.text()
-    try {
-      const data = JSON.parse(text)
-      await importData(data)
-    } catch {
-      alert('Invalid JSON file')
-    }
     e.target.value = ''
+    if (!file) return
+    let data
+    try {
+      data = JSON.parse(await file.text())
+    } catch {
+      toast({ message: `“${file.name}” isn’t a Todos backup: it isn’t valid JSON.`, tone: 'warning' })
+      return
+    }
+    await importData(data)
+    toast({ message: `Restored ${data.tasks?.length ?? 0} tasks from “${file.name}”.`, tone: 'success' })
   }
 
+  const themeLabel = `Theme: ${getTheme(theme).label} (switch to ${getTheme(upcoming).label})`
+
   return (
-    <header className="surface-header fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-4 h-14">
-
-      {/* Sidebar toggle */}
-      <button
-        className="btn btn-ghost p-1.5"
+    <header className="surface-header fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-3 h-14 no-print">
+      <IconButton
+        label={state.sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+        icon={state.sidebarOpen ? PanelLeftClose : PanelLeft}
         onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-        aria-label="Toggle sidebar"
-        style={{ flexShrink: 0 }}
-      >
-        {state.sidebarOpen ? <PanelLeftClose size={17} /> : <PanelLeft size={17} />}
-      </button>
+        aria-expanded={state.sidebarOpen}
+        tooltipAlign="start"
+      />
 
-      {/* Logo */}
       <div className="flex items-center gap-2 mr-3" style={{ flexShrink: 0 }}>
-        <div className="logo-tile rounded-lg p-1.5">
-          <CheckSquare size={15} />
+        <div className="logo-tile rounded-lg p-1.5 flex">
+          <CheckSquare size={15} variant="filled" />
         </div>
         <span style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text-1)' }}>Todos</span>
       </div>
 
-      {/* Search */}
-      <div className="flex-1 relative" style={{ maxWidth: 420 }}>
-        <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)', pointerEvents: 'none' }} />
+      <div className="flex-1 relative" style={{ maxWidth: 420 }} role="search">
+        <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
         <input
           ref={searchRef}
           className="input-base"
-          style={{ paddingLeft: 30, paddingRight: state.searchQuery ? 28 : 10 }}
+          type="search"
+          style={{ paddingLeft: 30, paddingRight: state.searchQuery ? 34 : 10 }}
           placeholder="Search tasks…"
           value={state.searchQuery}
           onChange={e => dispatch({ type: 'SET_SEARCH', query: e.target.value })}
+          onKeyDown={e => { if (e.key === 'Escape' && state.searchQuery) { e.preventDefault(); dispatch({ type: 'SET_SEARCH', query: '' }) } }}
           aria-label="Search tasks"
         />
         {state.searchQuery && (
-          <button
-            onClick={() => dispatch({ type: 'SET_SEARCH', query: '' })}
-            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', lineHeight: 1, padding: 2 }}
-            aria-label="Clear search"
-          >✕</button>
+          <IconButton
+            label="Clear search"
+            icon={X}
+            size={12}
+            small
+            onClick={() => { dispatch({ type: 'SET_SEARCH', query: '' }); searchRef.current?.focus() }}
+            style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)' }}
+          />
         )}
       </div>
 
-      {/* Right actions */}
       <div className="flex items-center gap-0.5 ml-auto">
-
-        {/* Command palette */}
-        <button
-          className="btn btn-ghost p-1.5"
-          onClick={onOpenCommandPalette}
-          aria-label="Command palette (Ctrl+K)"
-          title="Command palette (Ctrl+K)"
-        >
-          <Command size={16} />
-        </button>
-
-        {/* Export / Import */}
-        <div className="relative" data-export-menu>
-          <button
-            className="btn btn-ghost p-1.5"
-            onClick={() => setShowExportMenu(v => !v)}
-            data-feat="success"
-            aria-label="Export / Import"
-            title="Export / Import"
-          >
-            <Download size={16} />
-          </button>
-          {showExportMenu && (
-            <div
-              className="anim-drop-in absolute right-0 top-full mt-1 rounded-xl py-1 z-50"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', width: 160, minWidth: 'max-content' }}
-            >
-              <button className="btn btn-ghost w-full justify-start px-3 py-2 rounded-none" style={{ fontSize: '.825rem' }} onClick={handleExportJSON}>
-                <Download size={13} /> Export JSON
-              </button>
-              <button className="btn btn-ghost w-full justify-start px-3 py-2 rounded-none" style={{ fontSize: '.825rem' }} onClick={handleExportCSV}>
-                <Download size={13} /> Export CSV
-              </button>
-              <div style={{ height: 1, background: 'var(--border-light)', margin: '2px 0' }} />
-              <button className="btn btn-ghost w-full justify-start px-3 py-2 rounded-none" style={{ fontSize: '.825rem' }} onClick={() => { fileRef.current?.click(); setShowExportMenu(false) }}>
-                <Upload size={13} /> Import JSON
-              </button>
-            </div>
-          )}
-        </div>
-        <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} aria-label="Import JSON file" />
-
-        {/* Keyboard shortcuts */}
-        <button
-          className="btn btn-ghost p-1.5"
-          onClick={onShowShortcuts}
-          aria-label="Keyboard shortcuts (?)"
-          title="Keyboard shortcuts (?)"
-        >
-          <HelpCircle size={16} />
-        </button>
-
-        {/* Theme */}
-        <button
-          className="btn btn-ghost p-1.5"
-          onClick={cycleTheme}
-          aria-label={`Theme: ${getTheme(theme).label}. Switch to ${getTheme(upcoming).label}`}
-          title={`Theme: ${getTheme(theme).label} (switch to ${getTheme(upcoming).label})`}
-        >
+        <IconButton label="Command palette" tooltip="Command palette (Ctrl/⌘+K)" icon={Command} onClick={onOpenCommandPalette} />
+        <MenuButton
+          label="Download and restore"
+          icon={Download}
+          buttonProps={{ 'data-feat': 'success' }}
+          items={[
+            { label: 'Download backup (.json)', icon: Download, onSelect: handleExportJSON },
+            { label: 'Export tasks as CSV', icon: Download, onSelect: handleExportCSV },
+            { separator: true },
+            { label: 'Restore from backup…', icon: Upload, onSelect: () => fileRef.current?.click() },
+          ]}
+        />
+        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} aria-label="Restore from backup file" tabIndex={-1} />
+        <IconButton label="Keyboard shortcuts" tooltip="Keyboard shortcuts (?)" icon={HelpCircle} onClick={onShowShortcuts} />
+        <IconButton label={themeLabel} onClick={cycleTheme} tooltipAlign="end">
           <ThemeIcon key={theme} theme={theme} size={16} className="theme-icon-enter" />
-        </button>
+        </IconButton>
       </div>
     </header>
   )

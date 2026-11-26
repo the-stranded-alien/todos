@@ -7,6 +7,7 @@ import {
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO } from '../utils/dates.js'
 import { tint, ink } from '../utils/colors.js'
+import { IconButton } from './ui/IconButton.jsx'
 
 const ICON_MAP = {
   ...PROJECT_ICONS,
@@ -142,23 +143,18 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
 
       {/* ── Projects ────────────────────────── */}
       <section className="px-2 mb-4">
-        <div className="flex items-center px-3 mb-1">
-          <button
-            className="flex items-center gap-1 flex-1 text-left"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.06em' }}
-            onClick={() => setProjectsOpen(v => !v)}
-          >
-            {projectsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            PROJECTS
-          </button>
-          <button
-            className="btn btn-ghost p-1"
-            onClick={onNewProject}
-            aria-label="New project"
-            style={{ marginRight: -4 }}
-          >
-            <Plus size={14} />
-          </button>
+        <div className="flex items-center pl-3 mb-1">
+          <h2 className="flex-1">
+            <button
+              className="sidebar-heading"
+              aria-expanded={projectsOpen}
+              onClick={() => setProjectsOpen(v => !v)}
+            >
+              {projectsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              Projects
+            </button>
+          </h2>
+          <IconButton label="New project" icon={Plus} size={14} small onClick={onNewProject} tooltipAlign="end" />
         </div>
 
         {projectsOpen && sortedProjects.map(project => {
@@ -169,35 +165,27 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
           return (
             <div
               key={project.id}
-              className="group flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              style={{
-                background: active ? 'var(--accent-soft)' : dragOverId === project.id ? 'var(--accent-soft)' : 'transparent',
-                cursor: 'pointer',
-                borderTop: dragOverId === project.id ? '2px solid var(--accent)' : '2px solid transparent',
-              }}
-              onClick={() => setView(`project:${project.id}`)}
+              className="group sidebar-row"
+              data-active={active || dragOverId === project.id || undefined}
+              style={{ borderTop: dragOverId === project.id ? '2px solid var(--accent)' : '2px solid transparent' }}
               onDragOver={e => handleDragOver(e, project.id)}
               onDrop={e => handleDrop(e, project.id)}
               onDragLeave={() => setDragOverId(null)}
             >
-              <div className="rounded p-1 flex" style={{ background: tint(project.color), color: ink(project.color) }}>
-                <Ic size={12} />
-              </div>
-              <span className="flex-1 truncate" style={{ color: active ? 'var(--accent)' : 'var(--text-2)', fontSize: '.875rem', fontWeight: active ? 600 : 400 }}>
-                {project.name}
-              </span>
-              {count > 0 && (
-                <span style={{ color: 'var(--text-4)', fontSize: '.7rem' }}>{count}</span>
-              )}
-              <div className="hidden group-hover:flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-                <button className="btn btn-ghost p-0.5" onClick={() => onEditProject(project)} aria-label="Edit project"><Pencil size={11} /></button>
-              </div>
+              <button className="sidebar-row-main" aria-current={active ? 'page' : undefined} onClick={() => setView(`project:${project.id}`)}>
+                <span className="rounded p-1 flex" style={{ background: tint(project.color), color: ink(project.color) }}>
+                  <Ic size={12} />
+                </span>
+                <span className="flex-1 truncate">{project.name}</span>
+                {count > 0 && <span className="sidebar-count">{count}<span className="sr-only"> open tasks</span></span>}
+              </button>
+              <IconButton label={`Edit project ${project.name}`} tooltip="Edit project" icon={Pencil} size={12} small className="row-reveal" onClick={() => onEditProject(project)} tooltipAlign="end" />
             </div>
           )
         })}
 
         {projectsOpen && sortedProjects.length === 0 && (
-          <p style={{ color: 'var(--text-4)', fontSize: '.8rem', padding: '4px 12px' }}>No projects yet</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.8rem', padding: '4px 12px' }}>No projects yet. Use + to add one.</p>
         )}
       </section>
 
@@ -205,23 +193,18 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
 
       {/* ── Tags ────────────────────────────── */}
       <section className="px-2">
-        <div className="flex items-center px-3 mb-1">
-          <button
-            className="flex items-center gap-1 flex-1 text-left"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.06em' }}
-            onClick={() => setTagsOpen(v => !v)}
-          >
-            {tagsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            TAGS
-          </button>
-          <button
-            className="btn btn-ghost p-1"
-            onClick={onNewTag}
-            aria-label="New tag"
-            style={{ marginRight: -4 }}
-          >
-            <Plus size={14} />
-          </button>
+        <div className="flex items-center pl-3 mb-1">
+          <h2 className="flex-1">
+            <button
+              className="sidebar-heading"
+              aria-expanded={tagsOpen}
+              onClick={() => setTagsOpen(v => !v)}
+            >
+              {tagsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              Tags
+            </button>
+          </h2>
+          <IconButton label="New tag" icon={Plus} size={14} small onClick={onNewTag} tooltipAlign="end" />
         </div>
 
         {tagsOpen && state.tags.map(tag => {
@@ -229,32 +212,19 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag }) =>
           const count = tagTaskCounts[tag.id] || 0
 
           return (
-            <button
-              key={tag.id}
-              className="group w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left"
-              style={{
-                background: active ? 'var(--accent-soft)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-              onClick={() => setView(`tag:${tag.id}`)}
-            >
-              <div className="rounded-full" style={{ width: 8, height: 8, background: tag.color, flexShrink: 0 }} />
-              <span className="flex-1 truncate" style={{ color: active ? 'var(--accent)' : 'var(--text-2)', fontSize: '.875rem' }}>
-                #{tag.name}
-              </span>
-              {count > 0 && (
-                <span style={{ color: 'var(--text-4)', fontSize: '.7rem' }}>{count}</span>
-              )}
-              <div className="hidden group-hover:flex" onClick={e => e.stopPropagation()}>
-                <button className="btn btn-ghost p-0.5" onClick={() => onEditTag(tag)} aria-label="Edit tag"><Pencil size={11} /></button>
-              </div>
-            </button>
+            <div key={tag.id} className="group sidebar-row" data-active={active || undefined}>
+              <button className="sidebar-row-main" aria-current={active ? 'page' : undefined} onClick={() => setView(`tag:${tag.id}`)}>
+                <span aria-hidden="true" className="rounded-full" style={{ width: 8, height: 8, background: tag.color, flexShrink: 0, margin: '0 4px' }} />
+                <span className="flex-1 truncate">#{tag.name}</span>
+                {count > 0 && <span className="sidebar-count">{count}<span className="sr-only"> open tasks</span></span>}
+              </button>
+              <IconButton label={`Edit tag ${tag.name}`} tooltip="Edit tag" icon={Pencil} size={12} small className="row-reveal" onClick={() => onEditTag(tag)} tooltipAlign="end" />
+            </div>
           )
         })}
 
         {tagsOpen && state.tags.length === 0 && (
-          <p style={{ color: 'var(--text-4)', fontSize: '.8rem', padding: '4px 12px' }}>No tags yet</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '.8rem', padding: '4px 12px' }}>No tags yet. Use + or type #tag in a task.</p>
         )}
       </section>
 

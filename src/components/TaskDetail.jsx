@@ -10,6 +10,8 @@ import { ConfirmDelete } from './Modals/ConfirmDelete.jsx'
 import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
 import { renderMarkdown } from '../utils/markdown.js'
+import { IconButton } from './ui/IconButton.jsx'
+import { toast } from '../toast.js'
 import { tint, ink } from '../utils/colors.js'
 
 const PRIORITY_OPTIONS = [
@@ -32,7 +34,7 @@ const formatDuration = (ms) => {
 }
 
 export const TaskDetail = ({ onClose }) => {
-  const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask } = useStore()
+  const { state, updateTask, deleteTask, completeTask, uncompleteTask, startTimer, stopTimer, createTask, undo } = useStore()
   const task = state.tasks.find(t => t.id === state.selectedTaskId)
 
   const [showPreview, setShowPreview] = useState(false)
@@ -114,9 +116,7 @@ export const TaskDetail = ({ onClose }) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <span style={{ color: 'var(--text-4)', fontSize: '.75rem', fontWeight: 600 }}>TASK DETAIL</span>
-        <button className="btn btn-ghost p-1" onClick={onClose} aria-label="Close detail panel">
-          <X size={16} />
-        </button>
+        <IconButton label="Close details" icon={X} onClick={onClose} tooltipAlign="end" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
@@ -238,11 +238,15 @@ export const TaskDetail = ({ onClose }) => {
               {tagObjs.map(tag => (
                 <span key={tag.id} className="tag-chip" style={{ background: tint(tag.color), color: ink(tag.color) }}>
                   #{tag.name}
-                  <button
+                  <IconButton
+                    label={`Remove tag ${tag.name}`}
+                    tooltip="Remove tag"
+                    icon={X}
+                    size={10}
+                    small
                     onClick={e => { e.stopPropagation(); toggleTag(tag.id) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 0 0 2px', fontSize: '.8rem' }}
-                    aria-label={`Remove tag ${tag.name}`}
-                  >✕</button>
+                    style={{ minWidth: 18, height: 18, color: 'inherit', marginRight: -4 }}
+                  />
                 </span>
               ))}
               <input
@@ -318,14 +322,14 @@ export const TaskDetail = ({ onClose }) => {
             <span className="timer-digits" style={{ color: 'var(--text-1)', fontSize: '1.1rem', fontWeight: 600 }}>
               {formatDuration(totalTracked)}
             </span>
-            <button
-              className="btn btn-ghost p-1.5 ml-auto"
+            <IconButton
+              label={isTimerRunning ? 'Stop timer' : 'Start timer'}
+              icon={isTimerRunning ? Square : Play}
+              pressed={isTimerRunning}
+              data-feat="warning"
+              className="ml-auto"
               onClick={handleTimerToggle}
-              style={{ color: isTimerRunning ? 'var(--accent)' : 'var(--text-3)' }}
-              aria-label={isTimerRunning ? 'Stop timer' : 'Start timer'}
-            >
-              {isTimerRunning ? <Square size={16} /> : <Play size={16} />}
-            </button>
+            />
             {isTimerRunning && (
               <span style={{ color: 'var(--accent)', fontSize: '.75rem' }} className="anim-pulse-glow">
                 Running
@@ -339,10 +343,11 @@ export const TaskDetail = ({ onClose }) => {
           <div className="flex items-center justify-between mb-1">
             <label style={{ color: 'var(--text-4)', fontSize: '.7rem', fontWeight: 600 }}>NOTES</label>
             <button
-              className="btn btn-ghost p-1"
+              type="button"
+              className="btn btn-ghost"
               onClick={() => setShowPreview(v => !v)}
-              aria-label={showPreview ? 'Edit notes' : 'Preview notes'}
-              style={{ fontSize: '.7rem' }}
+              aria-pressed={showPreview}
+              style={{ fontSize: '.75rem', padding: '3px 8px' }}
             >
               {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
               {showPreview ? ' Edit' : ' Preview'}
@@ -377,20 +382,26 @@ export const TaskDetail = ({ onClose }) => {
                   onClick={() => sub.completed ? uncompleteTask(sub.id) : completeTask(sub.id)}
                   style={{ width: 15, height: 15 }}
                   aria-label={sub.completed ? 'Mark subtask incomplete' : 'Mark subtask complete'}
+                  data-tooltip={sub.completed ? 'Mark incomplete' : 'Mark complete'}
                 >
                   {sub.completed && <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 4l3 3 5-6"/></svg>}
                 </button>
                 <span style={{ flex: 1, fontSize: '.825rem', color: sub.completed ? 'var(--text-4)' : 'var(--text-1)', textDecoration: sub.completed ? 'line-through' : 'none' }}>
                   {sub.title}
                 </span>
-                <button
-                  className="btn btn-ghost p-0.5"
-                  onClick={() => deleteTask(sub.id)}
-                  aria-label="Delete subtask"
-                  style={{ opacity: 0.4 }}
-                >
-                  <X size={12} />
-                </button>
+                <IconButton
+                  label={`Delete subtask ${sub.title}`}
+                  tooltip="Delete subtask"
+                  icon={X}
+                  size={12}
+                  small
+                  danger
+                  tooltipAlign="end"
+                  onClick={() => {
+                    deleteTask(sub.id)
+                    toast({ message: `Deleted subtask “${sub.title}”.`, action: { label: 'Undo', onClick: undo } })
+                  }}
+                />
               </div>
             ))}
             <input
