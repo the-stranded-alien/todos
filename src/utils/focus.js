@@ -1,8 +1,15 @@
 // ── Focus helpers ──────────────────────────────────────────
 
-// Move focus to a task's title button (after closing the detail panel, renaming…)
+// Focus was dropped (its element went away) rather than moved by the user
+const focusLost = () => !document.activeElement || document.activeElement === document.body
+
+// Return focus to a task's title button after closing the detail panel or
+// renaming — but only if focus was lost, never if the user already moved on.
 export const focusTaskRow = (id) => {
-  requestAnimationFrame(() => document.querySelector(`[data-task-id="${CSS.escape(id)}"] .task-title`)?.focus())
+  requestAnimationFrame(() => {
+    if (!focusLost()) return
+    document.querySelector(`[data-task-id="${CSS.escape(id)}"] .task-title`)?.focus()
+  })
 }
 
 // Move focus into the detail panel's title field

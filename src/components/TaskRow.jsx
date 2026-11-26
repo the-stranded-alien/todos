@@ -211,7 +211,7 @@ export const TaskRow = ({
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
               autoFocus
-              aria-label="Task name"
+              aria-label="Rename task"
               onClick={e => e.stopPropagation()}
             />
           ) : (

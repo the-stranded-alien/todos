@@ -5,6 +5,7 @@ export const SHORTCUT_GROUPS = [
   { title: 'General', items: [
     [`${MOD}+K`, 'Open the command palette'],
     ['/', 'Search tasks'],
+    [`${MOD}+,`, 'Open settings'],
     ['?', 'Show keyboard shortcuts'],
     ['Esc', 'Close the panel, menu or dialog'],
     [`${MOD}+Z`, 'Undo'],
@@ -16,10 +17,15 @@ export const SHORTCUT_GROUPS = [
   ] },
   { title: 'Tasks', items: [
     ['N', 'Add a task'],
-    ['Space', 'Complete the focused task'],
+    ['↑ ↓', 'Move between tasks'],
     ['Enter', 'Open the focused task'],
-    ['Shift+F10', 'Task actions menu (or right-click)'],
-    ['Double-click', 'Rename a task in place'],
+    ['Space', 'Complete the focused task'],
+    ['F2', 'Rename the focused task'],
+    ['Delete', 'Delete the focused task (with Undo)'],
+    ['Shift+F10', 'Task menu (or right-click)'],
+  ] },
+  { title: 'Calendar', items: [
+    ['← → ↑ ↓', 'Move between days'],
+    ['Enter', 'Show the day’s tasks'],
   ] },
 ]
-

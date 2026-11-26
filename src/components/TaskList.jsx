@@ -88,7 +88,7 @@ export const TaskList = ({ quickAddRef }) => {
     } else if (view === 'all') {
       filtered = filtered.filter(t => !t.completed)
     } else if (view === 'completed') {
-      // all, including completed — handled below
+      filtered = filtered.filter(t => t.completed)
     } else if (view.startsWith('project:')) {
       const pid = view.slice(8)
       filtered = filtered.filter(t => t.projectId === pid && !t.completed)

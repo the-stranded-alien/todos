@@ -152,28 +152,30 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - [x] Settings → Features: "Hide AI features" switch (moved here from Batch 8)
 - **Verified:** 8 unit tests for the fallback and output parsing. In real Chrome 158 (headless), `LanguageModel` exists but reports `unavailable` (no model on this machine), so the browser check covered the requirements notice → quick version → pick 2 of 3 → one Undo removes both. A second check **mocks `LanguageModel`** to cover the first-run download (progress bar and %), "Thinking…", the privacy line, a prompt that includes the task and a schema, adding 3, Cancel during the download (no prompt runs afterwards), and "Hide AI features" removing the button. Axe 0 with the panel open at 1280 and 390. **Not verified:** a real model download and answer, which needs desktop Chrome with the model installed — please try it once on your machine.
 
-### Batch 11 — Final verification sweep ⬜
-- [ ] Browser sweep: every view × every theme × high contrast — axe, console errors, icon scan, horizontal scroll, header overlap at 4 widths
-- [ ] Functional walk-through (~25 steps): quick-add parsing, persistence across reload, undo/redo, edit, subtasks, timers, filters/sort, search, palette, calendar, stats, focus mode, bulk actions, backup → restore, cross-tab sync, themes, settings, help, mobile
-- [ ] Screenshots reviewed
-- [ ] Help, shortcuts sheet and About updated for everything new
-- [ ] Release checklist below fully ticked; live site checked against new bundle hash
+### Batch 11 — Final verification sweep ✅
+- [x] Browser sweep: every view × every theme × high contrast — axe, console errors, icon scan, horizontal scroll / off-screen controls, header overlap — at 1280 (28 variants × 7 views + 17 open states) and 390 (28 variants); 1100 and 900 covered in Batch 6
+- [x] Functional walk-through: new `e2e/walkthrough.mjs`, 21 steps (projects/tags, quick-add parsing, Today, reload persistence, timer, repeat, subtasks, rename, search, markdown preview, filters, sort, drag reorder, drag to project, palette, focus mode, stats, Completed view, CSV export, appearance persistence, "Open on")
+- [x] Screenshots reviewed (desktop grid across 6 themes, phone layouts, menus, dialogs, Settings previews)
+- [x] Help, shortcuts sheet and About updated (shortcuts now list F2, Delete, ↑/↓, Ctrl/⌘+, and the calendar keys)
+- [x] Release checklist below fully ticked; live site checked against the new bundle hash
+- **Bugs found by the walk-through and fixed:** the **Completed view also listed every open task** (since the original version; there's now a regression test); the inline rename field and the detail title had the same name "Task name"; returning focus to a task after closing the panel could, if you moved on within a frame, steal focus back (it now only restores focus that was actually lost); Help's search highlight failed contrast in Nord (it now uses audited tokens).
+- **Final numbers:** ESLint 0 problems · 64 unit tests · 34 interaction checks · 21 walk-through steps (5 consecutive clean runs) · 6 PWA checks · contrast audit 0 of 448 token pairs failing · axe/clipping/icon sweep 0 at 1280 for all 28 variants and at 390 for all 28 variants.
 
 ---
 
 ## Release checklist (from guidelines)
 
-- [ ] Tokens only: no hard-coded colours; new surfaces work in all themes and high contrast
-- [ ] Icons go through the wrapper; decorative icons `aria-hidden`; every icon button has a label and a tooltip
-- [ ] Hovers round and consistent; tooltips not clipped and hidden while their menu is open
-- [ ] Menus, dialogs and palette keyboard-complete with correct ARIA
-- [ ] Destructive actions undoable; programmatic edits keep native undo
-- [ ] Data persists across reloads and tabs, included in backups, never silently overwritten
-- [ ] Capabilities feature-detected with fallbacks; works offline; SW versioned
-- [ ] No horizontal scroll at 390px; header doesn't overlap at 900–1280px; reduced motion respected
-- [ ] Zero axe violations in every theme ± high contrast; no console errors
-- [ ] `eslint .` clean, `vitest run` passes, `vite build` succeeds, browser scripts pass, screenshots reviewed
-- [ ] Help, shortcuts sheet and About text updated
+- [x] Tokens only: no hard-coded colours; new surfaces work in all themes and high contrast
+- [x] Icons go through the wrapper; decorative icons `aria-hidden`; every icon button has a label and a tooltip
+- [x] Hovers round and consistent; tooltips not clipped and hidden while their menu is open
+- [x] Menus, dialogs and palette keyboard-complete with correct ARIA
+- [x] Destructive actions undoable; programmatic edits keep native undo
+- [x] Data persists across reloads and tabs, included in backups, never silently overwritten
+- [x] Capabilities feature-detected with fallbacks; works offline; SW versioned
+- [x] No horizontal scroll at 390px; header doesn't overlap at 900–1280px; reduced motion respected
+- [x] Zero axe violations in every theme ± high contrast; no console errors
+- [x] `eslint .` clean, `vitest run` passes, `vite build` succeeds, browser scripts pass, screenshots reviewed
+- [x] Help, shortcuts sheet and About text updated
 
 ---
 
@@ -196,4 +198,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 7 — Never lose data | 2026-11-26 | `4e5fe0f` | lint ✔ · 55 tests ✔ · build ✔ · 28/28 interactions ✔ · axe 0 |
 | 8 — Settings & Help | 2026-11-26 | `1b12329` | lint ✔ · 55 tests ✔ · build ✔ · 32/32 interactions ✔ · axe 0 incl. Settings/Help |
 | 9 — PWA & platform | 2026-11-26 | `571f7b3` | lint ✔ · 55 tests ✔ · build ✔ · 6/6 PWA checks ✔ · 32/32 interactions ✔ · axe 0 |
-| 10 — On-device AI | 2026-11-26 | _see git log_ | lint ✔ · 63 tests ✔ · build ✔ · 34/34 interactions ✔ (AI path mocked) · axe 0 |
+| 10 — On-device AI | 2026-11-26 | `ef78176` | lint ✔ · 63 tests ✔ · build ✔ · 34/34 interactions ✔ (AI path mocked) · axe 0 |
+| 11 — Final sweep | 2026-11-26 | _see git log_ | lint ✔ · 64 tests ✔ · build ✔ · 34 interactions · 21-step walk-through · 6 PWA · axe 0 at 1280 + 390 × 28 variants |
