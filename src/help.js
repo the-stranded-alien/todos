@@ -28,6 +28,7 @@ export const HELP_SECTIONS = [
       'Projects and tags in the sidebar filter the list. Drag a task onto a project to move it there.',
       'Use the Filters button for priority, tag, “has due date” and “overdue only”, and the Sort menu for order.',
       'Search (press /) looks through task names and notes.',
+      'Smart lists save a set of rules (projects, tags, priority, due date, words, notes, tracked time) as a list in the sidebar. Create one with + next to “Smart lists”, or set filters/search and choose “Save as smart list…”. Changing the sort inside a smart list is remembered for that list.',
     ],
   },
   {

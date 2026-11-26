@@ -2,12 +2,13 @@
 import { useMemo, useState, useCallback } from 'react'
 import {
   Inbox, Sun, CalendarDays, LayoutList, CheckCircle2, Calendar, BarChart3,
-  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS, Trash2,
+  Plus, Folder, ChevronDown, ChevronRight, Pencil, PROJECT_ICONS, Trash2, Filter,
 } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO } from '../utils/dates.js'
 import { tint, ink } from '../utils/colors.js'
 import { IconButton } from './ui/IconButton.jsx'
+import { matchesRules } from '../utils/smartLists.js'
 
 const ICON_MAP = {
   ...PROJECT_ICONS,
@@ -25,11 +26,12 @@ const VIEWS = [
   { id: 'trash',     label: 'Trash',     icon: 'Trash2' },
 ]
 
-export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag, onNavigate, drawer = false }) => {
+export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag, onEditList, onNavigate, drawer = false }) => {
   const { state, dispatch, updateTask } = useStore()
   const { tasks, projects, view } = state
   const [projectsOpen, setProjectsOpen] = useState(true)
   const [tagsOpen, setTagsOpen] = useState(true)
+  const [listsOpen, setListsOpen] = useState(true)
   const [dragOverId, setDragOverId] = useState(null)
 
   const taskCounts = useMemo(() => {
@@ -185,6 +187,38 @@ export const Sidebar = ({ onNewProject, onEditProject, onNewTag, onEditTag, onNa
 
         {projectsOpen && sortedProjects.length === 0 && (
           <p style={{ color: 'var(--text-3)', fontSize: '.8rem', padding: '4px 12px' }}>No projects yet. Use + to add one.</p>
+        )}
+      </section>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '0 12px 12px' }} />
+
+      {/* ── Smart lists ─────────────────────── */}
+      <section className="px-2 mb-4" aria-label="Smart lists">
+        <div className="flex items-center pl-3 mb-1">
+          <h2 className="flex-1">
+            <button className="sidebar-heading" aria-expanded={listsOpen} onClick={() => setListsOpen(v => !v)}>
+              {listsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              Smart lists
+            </button>
+          </h2>
+          <IconButton label="New smart list" icon={Plus} size={14} small onClick={() => onEditList?.({})} tooltipAlign="end" />
+        </div>
+        {listsOpen && state.lists.map(list => {
+          const active = view === `list:${list.id}`
+          const count = tasks.filter(t => !t.parentId && matchesRules(t, list.rules)).length
+          return (
+            <div key={list.id} className="group sidebar-row" data-active={active || undefined}>
+              <button className="sidebar-row-main" aria-current={active ? 'page' : undefined} onClick={() => setView(`list:${list.id}`)}>
+                <span className="rounded p-1 flex" style={{ background: tint(list.color), color: ink(list.color) }}><Filter size={12} /></span>
+                <span className="flex-1 truncate">{list.name}</span>
+                {count > 0 && <span className="sidebar-count">{count}<span className="sr-only"> tasks</span></span>}
+              </button>
+              <IconButton label={`Edit smart list ${list.name}`} tooltip="Edit smart list" icon={Pencil} size={12} small className="row-reveal" onClick={() => onEditList?.({ list })} tooltipAlign="end" />
+            </div>
+          )
+        })}
+        {listsOpen && state.lists.length === 0 && (
+          <p style={{ color: 'var(--text-3)', fontSize: '.8rem', padding: '4px 12px' }}>Save filters as a list with +.</p>
         )}
       </section>
 

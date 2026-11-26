@@ -6,6 +6,7 @@ import { IconButton } from './ui/IconButton.jsx'
 import { Menu } from './ui/Menu.jsx'
 import { focusTaskDetail, focusTaskDetailHeading, moveTaskFocus } from '../utils/focus.js'
 import { NARROW } from '../hooks/useMediaQuery.js'
+import { matchesRules, describeRules, rulesFromFilters } from '../utils/smartLists.js'
 import { useStore } from '../store/context.js'
 import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { TaskRow } from './TaskRow.jsx'
@@ -35,9 +36,14 @@ const ViewEmpty = ({ view, searching }) => {
   return <EmptyState icon={e.icon} title={e.title}>{e.sub}</EmptyState>
 }
 
-export const TaskList = ({ quickAddRef }) => {
-  const { state, dispatch, reorderTasks } = useStore()
-  const { tasks, projects, tags, view, filters, sortBy, selectedTaskId, bulkSelected, searchQuery } = state
+export const TaskList = ({ quickAddRef, onEditList }) => {
+  const { state, dispatch, reorderTasks, updateList } = useStore()
+  const { tasks, projects, tags, view, filters, selectedTaskId, bulkSelected, searchQuery } = state
+  const lists = state.lists
+  const currentList = useMemo(() => (view.startsWith('list:') ? lists.find(l => l.id === view.slice(5)) ?? null : null), [view, lists])
+  // Smart lists keep their own sort; changing it in the menu updates the list
+  const sortBy = currentList ? currentList.sortBy ?? 'order' : state.sortBy
+  const setSort = (v) => (currentList ? updateList(currentList.id, { sortBy: v }) : dispatch({ type: 'SET_SORT', sortBy: v }))
   const [completedOpen, setCompletedOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [dragOverId, setDragOverId] = useState(null)
@@ -62,13 +68,16 @@ export const TaskList = ({ quickAddRef }) => {
       const t = tags.find(t => t.id === view.slice(4))
       return t ? `#${t.name}` : 'Tag'
     }
+    if (currentList) return currentList.name
     return 'Tasks'
-  }, [view, projects, tags])
+  }, [view, projects, tags, currentList])
 
   // Default values to inject into new tasks based on view
-  const currentProjectId = useMemo(() =>
-    view.startsWith('project:') ? view.slice(8) : null
-  , [view])
+  const currentProjectId = useMemo(() => {
+    if (view.startsWith('project:')) return view.slice(8)
+    const ids = currentList?.rules?.projectIds ?? []
+    return ids.length === 1 && ids[0] !== 'inbox' ? ids[0] : null
+  }, [view, currentList])
 
   const defaultDueDate = useMemo(() => {
     if (view === 'today') return today
@@ -92,6 +101,8 @@ export const TaskList = ({ quickAddRef }) => {
     } else if (view.startsWith('project:')) {
       const pid = view.slice(8)
       filtered = filtered.filter(t => t.projectId === pid && !t.completed)
+    } else if (currentList) {
+      filtered = filtered.filter(t => matchesRules(t, currentList.rules))
     } else if (view.startsWith('tag:')) {
       const tid = view.slice(4)
       filtered = filtered.filter(t => (t.tags || []).includes(tid) && !t.completed)
@@ -131,7 +142,7 @@ export const TaskList = ({ quickAddRef }) => {
       activeTasks:    sorted.filter(t => !t.completed),
       completedTasks: sorted.filter(t => t.completed),
     }
-  }, [tasks, view, today, in7str, searchQuery, filters, sortBy])
+  }, [tasks, view, today, in7str, searchQuery, filters, sortBy, currentList])
 
   const handleSelect    = useCallback((id, opts) => {
     dispatch({ type: 'SELECT_TASK', id })
@@ -219,7 +230,7 @@ export const TaskList = ({ quickAddRef }) => {
           <Menu
             label="Sort by"
             align="end"
-            items={SORT_OPTIONS.map(o => ({ label: o.label, checked: sortBy === o.value, onSelect: () => dispatch({ type: 'SET_SORT', sortBy: o.value }) }))}
+            items={SORT_OPTIONS.map(o => ({ label: o.label, checked: sortBy === o.value, onSelect: () => setSort(o.value) }))}
             trigger={(props) => (
               <button type="button" className="btn btn-ghost" style={{ fontSize: '.8rem', padding: '6px 8px', color: 'var(--text-2)' }} aria-label={`Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label}`} data-tooltip="Sort tasks" {...props}>
                 <ArrowDownUp size={13} />
@@ -229,6 +240,20 @@ export const TaskList = ({ quickAddRef }) => {
             )}
           />
         </div>
+
+        {currentList && (
+          <p className="list-rules">
+            <span>{describeRules(currentList.rules, { projects, tags })}</span>
+            <button type="button" className="btn btn-ghost" style={{ fontSize: '.75rem', padding: '2px 8px' }} onClick={() => onEditList?.({ list: currentList })}>Edit rules</button>
+          </p>
+        )}
+        {!currentList && (activeFilterCount > 0 || searchQuery) && (
+          <p className="list-rules">
+            <button type="button" className="btn btn-ghost" style={{ fontSize: '.75rem', padding: '2px 8px' }} onClick={() => onEditList?.({ rules: rulesFromFilters(filters, searchQuery) })}>
+              Save as smart list…
+            </button>
+          </p>
+        )}
 
         {/* Filter bar */}
         {showFilters && (

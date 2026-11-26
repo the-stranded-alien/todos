@@ -72,6 +72,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings
       icon: Folder,
       group: 'Projects',
     }))
+    const listCmds = state.lists.map(l => ({ id: `list:${l.id}`, label: `Go to ${l.name}`, icon: Folder, group: 'Smart lists' }))
     const tagCmds = state.tags.map(t => ({
       id: `tag:${t.id}`,
       label: `Filter by #${t.name}`,
@@ -82,9 +83,9 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings
       .filter(t => !t.completed)
       .map(t => ({ id: `task:${t.id}`, label: t.title, icon: CheckSquare, group: 'Tasks', taskId: t.id }))
 
-    const all = [...STATIC_COMMANDS, ...appearanceCmds, ...projectCmds, ...tagCmds, ...taskCmds]
+    const all = [...STATIC_COMMANDS, ...appearanceCmds, ...projectCmds, ...listCmds, ...tagCmds, ...taskCmds]
     return all.filter(item => fuzzyMatch(item.label, query))
-  }, [query, state.tasks, state.projects, state.tags, appearanceCmds])
+  }, [query, state.tasks, state.projects, state.tags, state.lists, appearanceCmds])
 
 
   const execute = useCallback((item) => {
@@ -111,6 +112,9 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings
       dispatch({ type: 'SET_VIEW', view: item.id.slice(5) })
       onClose()
     } else if (item.id.startsWith('project:')) {
+      dispatch({ type: 'SET_VIEW', view: item.id })
+      onClose()
+    } else if (item.id.startsWith('list:')) {
       dispatch({ type: 'SET_VIEW', view: item.id })
       onClose()
     } else if (item.id.startsWith('tag:')) {

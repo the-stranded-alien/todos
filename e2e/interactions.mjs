@@ -413,6 +413,48 @@ await check('history: an edit can be restored from the task’s History', async 
   await page.getByRole('button', { name: 'Close details' }).click()
 })
 
+// ── Smart lists ──────────────────────────────────────────
+await check('smart lists: save filters as a list, rules apply, sort is per list, delete with Undo', async () => {
+  await page.mouse.click(700, 700)
+  await quick.fill('Urgent alpha p3'); await quick.press('Enter')
+  await quick.fill('Calm beta p1'); await quick.press('Enter')
+  await page.getByRole('button', { name: 'Filters' }).click()
+  await page.getByRole('combobox', { name: 'Filter by priority' }).selectOption('3')
+  await page.getByRole('button', { name: 'Save as smart list…' }).click()
+  const dlg = page.getByRole('dialog', { name: 'New smart list' })
+  await dlg.waitFor()
+  assert(await dlg.getByRole('checkbox', { name: 'High' }).isChecked(), 'priority not prefilled')
+  const count = await dlg.getByText(/^Matches \d+ task/).textContent()
+  await page.keyboard.type('Top priority')
+  await dlg.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('heading', { level: 1, name: 'Top priority' }).waitFor()
+  const titles = await page.locator('main ul[aria-label$=" tasks"] > li > .task-row .task-title').allTextContents()
+  assert(titles.includes('Urgent alpha') && !titles.includes('Calm beta'), 'rules: ' + titles)
+  assert(count === `Matches ${titles.length} task${titles.length === 1 ? '' : 's'}`, `${count} vs ${titles.length}`)
+  assert(await page.getByRole('button', { name: /Clear \d filter/ }).count() === 0, 'filters not cleared after saving')
+  // per-list sort
+  await page.getByRole('button', { name: /^Inbox/ }).click()
+  const inboxSort = await page.getByRole('button', { name: /^Sort:/ }).getAttribute('aria-label')
+  await page.getByRole('button', { name: /^Top priority/ }).click()
+  await page.getByRole('button', { name: /^Sort:/ }).click()
+  await page.getByRole('menuitemradio', { name: 'Due date' }).click()
+  await page.getByRole('button', { name: /^Inbox/ }).click()
+  assert(await page.getByRole('button', { name: /^Sort:/ }).getAttribute('aria-label') === inboxSort, 'list sort leaked to inbox')
+  await page.getByRole('button', { name: /^Top priority/ }).click()
+  assert(await page.getByRole('button', { name: 'Sort: Due date' }).count() === 1, 'list sort not kept')
+  // edit, then delete with undo
+  await page.getByRole('button', { name: 'Edit rules' }).click()
+  const ed = page.getByRole('dialog', { name: 'Edit smart list' })
+  await ed.getByRole('checkbox', { name: 'Low' }).check()
+  await ed.getByRole('button', { name: 'Save' }).click()
+  await page.locator('.task-title', { hasText: 'Calm beta' }).waitFor()
+  await page.getByRole('button', { name: 'Edit rules' }).click()
+  await page.getByRole('dialog', { name: 'Edit smart list' }).getByRole('button', { name: 'Delete list' }).click()
+  await page.getByRole('heading', { level: 1, name: 'Inbox' }).waitFor()
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await page.getByRole('button', { name: /^Top priority/ }).waitFor()
+})
+
 // ── On-device AI ─────────────────────────────────────────
 await check('suggest subtasks without built-in AI: notice, quick version, one undo step', async () => {
   await page.mouse.click(700, 700)

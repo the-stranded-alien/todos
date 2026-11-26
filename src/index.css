@@ -923,3 +923,12 @@ mark { background: var(--accent-soft); color: var(--text-1); box-shadow: inset 0
 .history-what { display: block; font-size: .78rem; color: var(--text-2); }
 .history-when { display: block; font-size: .7rem; color: var(--text-3); }
 .history-restore { font-size: .72rem; padding: 2px 8px; }
+
+/* ── Check chips (multi-select) ───────────────────────────── */
+.check-group { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+.check-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.check-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; font-size: .8rem; color: var(--text-2); background: var(--bg-card); }
+.check-chip input { accent-color: var(--accent); margin: 0; }
+.check-chip:has(input:checked) { border-color: var(--accent-border); background: var(--accent-soft); color: var(--text-1); }
+.check-chip:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.list-rules { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -8px 0 12px; color: var(--text-3); font-size: .78rem; }

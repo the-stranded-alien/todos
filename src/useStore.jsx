@@ -19,6 +19,7 @@ const initialState = {
   projects: [],
   tags: [],
   trash: [],             // [{ id, task, deletedAt, batch }]
+  lists: [],             // smart lists
   loading: true,
   view: 'inbox',         // inbox|today|upcoming|all|completed|calendar|stats|project:id|tag:id
   selectedTaskId: null,
@@ -51,14 +52,15 @@ const reducer = (state, action) => {
 
     // Data replaced from IndexedDB (restore, another tab): keep UI state valid
     case 'SYNC': {
-      const { tasks, projects, tags, trash = state.trash } = action
+      const { tasks, projects, tags, trash = state.trash, lists = state.lists } = action
       const ids = new Set(tasks.map(t => t.id))
       const selectedGone = state.selectedTaskId && !ids.has(state.selectedTaskId)
-      const viewGone = (state.view.startsWith('project:') && !projects.some(p => `project:${p.id}` === state.view))
+      const viewGone = (state.view.startsWith('list:') && !lists.some(l => `list:${l.id}` === state.view))
+        || (state.view.startsWith('project:') && !projects.some(p => `project:${p.id}` === state.view))
         || (state.view.startsWith('tag:') && !tags.some(t => `tag:${t.id}` === state.view))
       return {
         ...state,
-        tasks, projects, tags, trash,
+        tasks, projects, tags, trash, lists,
         activeTimerTaskId: tasks.find(t => t.timerStartedAt != null)?.id ?? null,
         selectedTaskId: selectedGone ? null : state.selectedTaskId,
         detailOpen: selectedGone ? false : state.detailOpen,
@@ -83,6 +85,12 @@ const reducer = (state, action) => {
     }
     case 'SET_TASKS': return { ...state, tasks: action.tasks }
     case 'SET_TRASH': return { ...state, trash: action.trash }
+    case 'UPSERT_LIST': return { ...state, lists: upsert(state.lists, [action.list]) }
+    case 'REMOVE_LIST': return {
+      ...state,
+      lists: state.lists.filter(l => l.id !== action.id),
+      view: state.view === `list:${action.id}` ? 'inbox' : state.view,
+    }
 
     case 'UPSERT_PROJECT': return { ...state, projects: upsert(state.projects, [action.project]) }
     case 'REMOVE_PROJECT': return {
@@ -164,8 +172,8 @@ export const StoreProvider = ({ children }) => {
   const group = useRef(null)
 
   const reloadAll = useCallback(async () => {
-    const [tasks, projects, tags, trash] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags(), db.getTrash()])
-    dispatch({ type: 'SYNC', tasks, projects, tags, trash })
+    const [tasks, projects, tags, trash, lists] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags(), db.getTrash(), db.getLists()])
+    dispatch({ type: 'SYNC', tasks, projects, tags, trash, lists })
   }, [])
 
   // Load on mount
@@ -173,10 +181,10 @@ export const StoreProvider = ({ children }) => {
     let alive = true
     ;(async () => {
       await db.purgeTrash()
-      const [tasks, projects, tags, trash] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags(), db.getTrash()])
+      const [tasks, projects, tags, trash, lists] = await Promise.all([db.getTasks(), db.getProjects(), db.getTags(), db.getTrash(), db.getLists()])
       if (!alive) return
       const activeTimer = tasks.find(t => t.timerStartedAt != null)
-      dispatch({ type: 'LOAD', payload: { tasks, projects, tags, trash, activeTimerTaskId: activeTimer?.id ?? null } })
+      dispatch({ type: 'LOAD', payload: { tasks, projects, tags, trash, lists, activeTimerTaskId: activeTimer?.id ?? null } })
     })()
     return () => { alive = false }
   }, [])
@@ -391,6 +399,32 @@ export const StoreProvider = ({ children }) => {
 
   const emptyTrash = useCallback(async () => deletePermanently((await db.getTrash()).map(e => e.id)), [deletePermanently])
 
+  // ── Smart lists ──────────────────────────────────────────
+  const putList = useCallback(async (list) => { await db.putList(list); dispatch({ type: 'UPSERT_LIST', list }) }, [])
+  const removeList = useCallback(async (id) => { await db.deleteList(id); dispatch({ type: 'REMOVE_LIST', id }) }, [])
+
+  const createList = useCallback(async (fields) => {
+    const list = { id: nanoid(), name: 'Smart list', color: DEFAULT_SWATCH, rules: {}, sortBy: 'order', order: Date.now(), createdAt: Date.now(), ...fields }
+    await putList(list)
+    pushUndo(() => removeList(list.id), () => putList(list))
+    return list
+  }, [putList, removeList, pushUndo])
+
+  const updateList = useCallback(async (id, changes) => {
+    const prev = (await db.getLists()).find(l => l.id === id)
+    if (!prev) return
+    const next = { ...prev, ...changes }
+    await putList(next)
+    pushUndo(() => putList(prev), () => putList(next))
+  }, [putList, pushUndo])
+
+  const deleteList = useCallback(async (id) => {
+    const prev = (await db.getLists()).find(l => l.id === id)
+    if (!prev) return
+    await removeList(id)
+    pushUndo(() => putList(prev), () => removeList(id))
+  }, [putList, removeList, pushUndo])
+
   // Restore a task's fields to how they were before a recorded change
   const restoreVersion = useCallback(async (taskId, fields) => updateTask(taskId, fields), [updateTask])
 
@@ -570,6 +604,7 @@ export const StoreProvider = ({ children }) => {
     createTag, updateTag, deleteTag,
     bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,
     restoreFromTrash, deletePermanently, emptyTrash, restoreVersion,
+    createList, updateList, deleteList,
     undo, redo,
     importData, reloadAll,
   }

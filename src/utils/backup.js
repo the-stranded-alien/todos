@@ -17,6 +17,7 @@ export const makeBackup = (data, settings) => ({
   tags: data.tags,
   history: data.history ?? [],
   trash: data.trash ?? [],
+  lists: data.lists ?? [],
 })
 
 const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v)
@@ -48,7 +49,8 @@ export const validateBackup = (raw) => {
   const problem =
     checkList(raw.tasks, 'tasks', [['id', 'string'], ['title', 'string']]) ??
     checkList(raw.projects, 'projects', [['id', 'string'], ['name', 'string']]) ??
-    checkList(raw.tags, 'tags', [['id', 'string'], ['name', 'string']])
+    checkList(raw.tags, 'tags', [['id', 'string'], ['name', 'string']]) ??
+    checkList(raw.lists, 'lists', [['id', 'string'], ['name', 'string']])
   if (problem) return { ok: false, error: problem }
   if (raw.history != null && !Array.isArray(raw.history)) return { ok: false, error: 'The activity history in this backup is damaged.' }
   if (raw.trash != null && (!Array.isArray(raw.trash) || raw.trash.some(e => !isObj(e) || typeof e.id !== 'string' || !isObj(e.task)))) {
@@ -56,7 +58,7 @@ export const validateBackup = (raw) => {
   }
   return {
     ok: true,
-    data: { tasks: raw.tasks, projects: raw.projects ?? [], tags: raw.tags ?? [], history: raw.history ?? [], trash: raw.trash ?? [] },
+    data: { tasks: raw.tasks, projects: raw.projects ?? [], tags: raw.tags ?? [], history: raw.history ?? [], trash: raw.trash ?? [], lists: raw.lists ?? [] },
     settings: isObj(raw.settings) ? raw.settings : null,
   }
 }

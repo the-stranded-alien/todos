@@ -26,6 +26,7 @@ import { TagEditor } from './components/Modals/TagEditor.jsx'
 import { SettingsDialog } from './components/Settings/SettingsDialog.jsx'
 import { HelpDialog } from './components/HelpDialog.jsx'
 import { TrashView } from './components/TrashView.jsx'
+import { SmartListEditor } from './components/Modals/SmartListEditor.jsx'
 import { Toaster } from './components/ui/Toaster.jsx'
 import { toast } from './toast.js'
 import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
@@ -51,6 +52,7 @@ const AppInner = () => {
   const [focusMode, setFocusMode]               = useState(false)
   const [projectEditor, setProjectEditor]       = useState(null) // null | 'new' | project
   const [tagEditor, setTagEditor]               = useState(null)
+  const [listEditor, setListEditor]             = useState(null) // null | { list?, rules? }
 
   useEffect(() => { registerServiceWorker() }, [])
 
@@ -140,6 +142,7 @@ const AppInner = () => {
     onEditProject: (p) => { setDrawerOpen(false); setProjectEditor(p) },
     onNewTag: () => { setDrawerOpen(false); setTagEditor('new') },
     onEditTag: (t) => { setDrawerOpen(false); setTagEditor(t) },
+    onEditList: (x) => { setDrawerOpen(false); setListEditor(x) },
   }
 
   const isCalendar = view === 'calendar'
@@ -187,7 +190,7 @@ const AppInner = () => {
             ) : isStats ? (
               <StatsPanel />
             ) : (
-              <TaskList quickAddRef={quickAddRef} />
+              <TaskList quickAddRef={quickAddRef} onEditList={setListEditor} />
             )}
           </div>
 
@@ -221,6 +224,14 @@ const AppInner = () => {
         />
       )}
       {showHelp && <HelpDialog onClose={() => setShowHelp(false)} />}
+      {listEditor && (
+        <SmartListEditor
+          list={listEditor.list}
+          initialRules={listEditor.rules}
+          onClose={() => setListEditor(null)}
+          onSaved={(l) => { dispatch({ type: 'CLEAR_FILTERS' }); dispatch({ type: 'SET_SEARCH', query: '' }); dispatch({ type: 'SET_VIEW', view: `list:${l.id}` }) }}
+        />
+      )}
       {projectEditor && (
         <ProjectEditor
           project={projectEditor === 'new' ? null : projectEditor}

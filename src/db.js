@@ -3,7 +3,7 @@ import { openDB } from 'idb'
 import { announceChange } from './sync.js'
 
 const DB_NAME = 'todos-db'
-const DB_VERSION = 3
+const DB_VERSION = 4
 export const TRASH_DAYS = 30
 const MAX_SNAPSHOTS = 5
 
@@ -32,6 +32,10 @@ export const getDB = async () => {
       if (oldVersion < 3) {
         // Deleted tasks, kept for TRASH_DAYS: { id, task, deletedAt, batch }
         db.createObjectStore('trash', { keyPath: 'id' })
+      }
+      if (oldVersion < 4) {
+        // Smart lists: { id, name, color, rules, sortBy, order, createdAt }
+        db.createObjectStore('lists', { keyPath: 'id' })
       }
     },
     blocking() {
@@ -130,19 +134,20 @@ export const getTaskHistory = async (taskId) => {
 // ── Full export ────────────────────────────────────────────
 export const exportAll = async () => {
   const db = await getDB()
-  const [tasks, projects, tags, history, trash] = await Promise.all([
+  const [tasks, projects, tags, history, trash, lists] = await Promise.all([
     db.getAll('tasks'),
     db.getAll('projects'),
     db.getAll('tags'),
     db.getAll('history'),
     db.getAll('trash'),
+    db.getAll('lists'),
   ])
-  return { tasks, projects, tags, history, trash, exportedAt: Date.now() }
+  return { tasks, projects, tags, history, trash, lists, exportedAt: Date.now() }
 }
 
 export const importAll = async (data) => {
   const db = await getDB()
-  const stores = ['tasks', 'projects', 'tags', 'history', 'trash']
+  const stores = ['tasks', 'projects', 'tags', 'history', 'trash', 'lists']
   const tx = db.transaction(stores, 'readwrite')
   await Promise.all(stores.map(st => tx.objectStore(st).clear()))
   await Promise.all([
@@ -151,6 +156,7 @@ export const importAll = async (data) => {
     ...(data.tags || []).map(t => tx.objectStore('tags').put(t)),
     ...(data.history || []).map(h => tx.objectStore('history').put(h)),
     ...(data.trash || []).map(t => tx.objectStore('trash').put(t)),
+    ...(data.lists || []).map(l => tx.objectStore('lists').put(l)),
   ])
   await tx.done
   announceChange()
@@ -221,3 +227,8 @@ export const purgeTrash = async (now = Date.now()) => {
   if (old.length) await deleteFromTrash(old.map(e => e.id))
   return old.length
 }
+
+// ── Smart lists ────────────────────────────────────────────
+export const getLists = async () => (await getDB()).getAll('lists')
+export const putList = async (list) => { await (await getDB()).put('lists', list); announceChange() }
+export const deleteList = async (id) => { await (await getDB()).delete('lists', id); announceChange() }

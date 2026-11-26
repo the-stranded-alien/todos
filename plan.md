@@ -211,10 +211,12 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 - [ ] Quick-add understands "every weekday", "every 2 weeks on fri", "monthly on the 15th"
 - [ ] Tested with fake timers across month ends, DST and leap years
 
-### 5. Smart lists (saved filters) ⬜ (S)
-- [ ] Save the current search + filters + sort as a named list in the sidebar (icon, colour)
-- [ ] Rules: project, tag (any/all), priority, due (overdue/today/this week/none), has notes, has timer time
-- [ ] Shown in the palette; included in backups and sync
+### 5. Smart lists (saved filters) ✅ (Batch 13) (S)
+- [x] Save the current search + filters + sort as a named list in the sidebar (icon, colour)
+- [x] Rules: project, tag (any/all), priority, due (overdue/today/this week/none), has notes, has timer time
+- [x] Shown in the palette; included in backups and sync
+- **Notes:** Rules engine in `utils/smartLists.js` (words, projects incl. Inbox, tags any/all, priorities, due window, has notes, has tracked time, include completed) with a readable summary under the list title. DB schema v4 adds a `lists` store; lists are in backups (validated) and sync between tabs. Editor dialog shows a live "Matches N tasks". "Save as smart list…" appears whenever a search or filter is active, and pre-fills the rules. Each list remembers its own sort. New tasks added in a list default to its project when the list targets exactly one. Deleting a list never touches tasks, and offers Undo.
+- **Verified:** 7 unit tests for the rules; browser check covering save from filters, rules applied, count matches, filters cleared after saving, per-list sort not leaking to the Inbox, edit rules, and delete → Undo. Axe on the editor: 0 at 1280 and 390, light and dark+hc.
 
 ### 6. Board view (Kanban) ⬜ (M)
 - [ ] Columns by status (To do / Doing / Done), by priority, or by project; drag cards between columns (keyboard alternative: "Move to…" menu, arrow keys)
@@ -284,3 +286,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 10 — On-device AI | 2026-11-26 | `ef78176` | lint ✔ · 63 tests ✔ · build ✔ · 34/34 interactions ✔ (AI path mocked) · axe 0 |
 | 11 — Final sweep | 2026-11-26 | `57b0e94` | lint ✔ · 64 tests ✔ · build ✔ · 34 interactions · 21-step walk-through · 6 PWA · axe 0 at 1280 + 390 × 28 variants |
 | 12 — Trash & history | 2026-11-26 | _see git log_ | lint ✔ · 69 tests ✔ · build ✔ · 36 interactions ✔ · walk-through ✔ · PWA ✔ · axe 0 |
+| 13 — Smart lists | 2026-11-26 | _see git log_ | lint ✔ · 76 tests ✔ · build ✔ · 37 interactions ✔ · walk-through ✔ · axe 0 |
