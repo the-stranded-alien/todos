@@ -322,6 +322,8 @@ export const StoreProvider = ({ children }) => {
           completedAt: null,
           dueDate: nextDue,
           recurring: { ...rule, anchor: rule.anchor ?? task.dueDate ?? base, count: (rule.count ?? 0) + 1 },
+          reminderDone: null,
+          snoozeUntil: null,
           timeTracked: 0,
           timerStartedAt: null,
           order: now + 1,
@@ -448,6 +450,12 @@ export const StoreProvider = ({ children }) => {
   }, [pushUndo, writeTasks])
 
   // ── Timers and focus sessions (not part of undo) ─────────
+
+  // Reminder bookkeeping (fired / snoozed): not an edit, so no undo or history
+  const markReminder = useCallback(async (id, fields) => {
+    const task = await db.getTask(id)
+    if (task) await writeTasks([{ ...task, ...fields }])
+  }, [writeTasks])
 
   const recordPomodoro = useCallback(async (id, minutes, at = Date.now()) => {
     const task = await db.getTask(id)
@@ -616,7 +624,7 @@ export const StoreProvider = ({ children }) => {
     state,
     dispatch,
     createTask, updateTask, completeTask, uncompleteTask, deleteTask, reorderTasks, skipOccurrence,
-    startTimer, stopTimer, recordPomodoro,
+    startTimer, stopTimer, recordPomodoro, markReminder,
     createProject, updateProject, deleteProject,
     createTag, updateTag, deleteTag,
     bulkComplete, bulkDelete, bulkMoveToProject, bulkAddTag, clearCompleted, addSubtasks,

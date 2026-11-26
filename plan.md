@@ -197,12 +197,16 @@ Ranked by value to users. Every feature keeps the app's principles: **no server*
 - Tests: OPFS as a stand-in disk (guideline §12), in-memory directory-handle mock for unit tests
 - Guidelines: §9 sync to a folder, §10 file system APIs
 
-### 3. Reliable reminders + calendar ⬜ (M)
-- [ ] Reminder per task (at due time, or 10 min / 1 h / 1 day before), separate from the due date
-- [ ] While open: precise timers in the page; when closed: best available (`showTrigger` where supported, Periodic Background Sync for installed apps), with a clear note of what each browser can do
-- [ ] **Add to calendar**: download `.ics` for one task or all dated tasks, so the OS calendar handles alarms reliably
-- [ ] Snooze from the notification (actions: Done, Snooze 10 min)
+### 3. Reliable reminders + calendar ✅ (Batch 16) (M)
+- [x] Reminder per task (at due time, or 10 min / 1 h / 1 day before), separate from the due date
+- [x] While open: precise timers in the page; when closed: best available (`showTrigger` where supported, Periodic Background Sync for installed apps), with a clear note of what each browser can do
+- [x] **Add to calendar**: download `.ics` for one task or all dated tasks, so the OS calendar handles alarms reliably
+- [x] Snooze from the notification (actions: Done, Snooze 10 min)
 - Guidelines: §10 feature detection with fallbacks, §13 say plainly what works where
+- **What's honest about "when closed":** browsers can't wake a web app at an exact time (Notification Triggers never shipped; periodic background sync runs at most about every 12 hours). So: (1) reminders fire on time while Todos is open; (2) reminders that came due while it was closed are listed in a toast when it opens again (last 24 hours); (3) for real alarms, **Add to calendar** (per task) and **Download → Export to calendar (.ics)** hand them to the OS calendar, repeats (RRULE) and reminder (VALARM) included. The UI says this in the reminder field, Settings and Help.
+- **Notes:** `task.reminder` is `{ mode: 'offset', minutes }` or `{ mode: 'at', at }`; all-day tasks remind at 9am. Snoozing uses a separate `snoozeUntil`, so the reminder setting isn't changed. The old worker-side `setTimeout` scheduling (unreliable: workers get killed) was removed; the page schedules one timer for the soonest reminder and re-plans on changes and when the tab returns. System notifications (when switched on and allowed) have **Done** and **Snooze 10 min** actions, relayed by the service worker to an open window, or via `?task=…&reminder=…` if none is open. New occurrences of repeating tasks start with a clean reminder state. Rows show a bell.
+- **Bugs found and fixed while testing:** (1) `.ics` text didn't escape semicolons (the test had the same slip; both fixed). (2) A reminder whose time passed while timers weren't running (sleep, throttled tab) was skipped until the next app start; it now fires as soon as the app can. (3) The "missed while closed" summary and the scheduler could both fire the same reminder; handled reminders are now tracked so each fires once.
+- **Verified:** 8 reminder tests + 3 `.ics` tests (escaping, line folding, RRULE incl. BYSETPOS/COUNT/UNTIL, timed/all-day/alarm events). Browser check on a fake clock in real Chrome: reminder fires at 10:20 for 10:30 with a toast **and a real system notification with Done/Snooze actions**; Snooze → not before 10 min, then fires again; the Done action completes the task; a reminder that came due while closed is reported on reopen; "Add to calendar" downloads a valid event with the alarm. Axe 0 with the reminder field open.
 
 ### 4. Flexible repeats ✅ (Batch 14) (M)
 - [x] Every N days/weeks/months/years; specific weekdays; "2nd Tuesday", "last weekday of the month"
@@ -294,3 +298,4 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 13 — Smart lists | 2026-11-26 | _see git log_ | lint ✔ · 76 tests ✔ · build ✔ · 37 interactions ✔ · walk-through ✔ · axe 0 |
 | 14 — Flexible repeats | 2026-11-26 | _see git log_ | lint ✔ · 97 tests ✔ · build ✔ · interactions ✔ · 22-step walk-through ✔ · axe 0 |
 | 15 — Pomodoro | 2026-11-26 | _see git log_ | lint ✔ · 100 tests ✔ · build ✔ · interactions ✔ (fake clock) · walk-through ✔ · axe 0 |
+| 16 — Reminders & calendar | 2026-11-26 | _see git log_ | lint ✔ · 108 tests ✔ · build ✔ · interactions ✔ (fake clock + real notifications) · walk-through ✔ · PWA ✔ · axe 0 |

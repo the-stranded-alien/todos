@@ -39,3 +39,12 @@ export const exportCSV = (tasks, projects, tags) => {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+export const downloadText = (text, filename, type) => {
+  const url = URL.createObjectURL(new Blob([text], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

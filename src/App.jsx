@@ -10,6 +10,7 @@ import { useMediaQuery, NARROW } from './hooks/useMediaQuery.js'
 import { Drawer } from './components/ui/Drawer.jsx'
 import { useHotkeys } from './hooks/useHotkeys.js'
 import { registerServiceWorker } from './pwa.js'
+import { useReminders } from './hooks/useReminders.js'
 
 import { Header } from './components/Header.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
@@ -56,17 +57,9 @@ const AppInner = () => {
 
   useEffect(() => { registerServiceWorker() }, [])
 
-  // ── Service worker message handler ──────────────────────
-  useEffect(() => {
-    if (!('serviceWorker' in navigator)) return
-    const handler = (e) => {
-      if (e.data?.type === 'OPEN_TASK') {
-        dispatch({ type: 'SELECT_TASK', id: e.data.taskId })
-      }
-    }
-    navigator.serviceWorker.addEventListener('message', handler)
-    return () => navigator.serviceWorker.removeEventListener('message', handler)
-  }, [dispatch])
+  // ── Reminders (scheduled while the app is open) ─────────
+  const openTask = useCallback((id) => dispatch({ type: 'SELECT_TASK', id }), [dispatch])
+  const { act: reminderAction } = useReminders({ onOpenTask: openTask })
 
   // ── Launch actions from the URL: manifest shortcuts, notification
   // clicks and the OS share sheet (share_target). Runs once after load.
@@ -94,9 +87,12 @@ const AppInner = () => {
     if (view && ['inbox', 'today', 'upcoming', 'all', 'completed', 'calendar', 'stats', 'trash'].includes(view)) dispatch({ type: 'SET_VIEW', view })
     if (p.get('action') === 'new-task') requestAnimationFrame(() => quickAddRef.current?.focus())
     const taskId = p.get('task')
-    if (taskId && state.tasks.some(t => t.id === taskId)) dispatch({ type: 'SELECT_TASK', id: taskId })
+    if (taskId && state.tasks.some(t => t.id === taskId)) {
+      if (p.get('reminder')) reminderAction(taskId, p.get('reminder'))
+      else dispatch({ type: 'SELECT_TASK', id: taskId })
+    }
     window.history.replaceState(null, '', '/')
-  }, [state.loading, state.tasks, createTask, dispatch, undo])
+  }, [state.loading, state.tasks, createTask, dispatch, undo, reminderAction])
 
   // ── Programmatic view switch (used by browser checks and OS shortcuts)
   useEffect(() => {

@@ -1,9 +1,10 @@
 // ── Header ─────────────────────────────────────────────────
 import { useRef, useEffect } from 'react'
-import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft, X, Settings } from '../icons.jsx'
+import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft, X, Settings, Calendar } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
 import { useBackup } from '../hooks/useBackup.js'
+import { exportCalendar } from '../utils/calendarExport.js'
 import { getTheme, nextTheme } from '../themes.js'
 import { ThemeIcon } from './ThemeIcon.jsx'
 import { IconButton } from './ui/IconButton.jsx'
@@ -81,6 +82,7 @@ export const Header = ({ onOpenHelp, onOpenSettings, onOpenCommandPalette, sideb
           items={[
             { label: 'Download backup (.json)', icon: Download, onSelect: downloadBackup },
             { label: 'Export tasks as CSV', icon: Download, onSelect: downloadCSV },
+            { label: 'Export to calendar (.ics)', icon: Calendar, onSelect: () => exportCalendar(state.tasks) },
             { separator: true },
             { label: 'Restore from backup…', icon: Upload, onSelect: () => fileRef.current?.click() },
           ]}

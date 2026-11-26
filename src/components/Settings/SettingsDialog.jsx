@@ -119,8 +119,8 @@ const Features = ({ prefs }) => {
       />
       <Switch label="Time tracking" description="Show start/stop timers on tasks and in focus mode." checked={prefs.timers} onChange={v => setPrefs({ timers: v })} />
       <Switch
-        label="Due-time reminders"
-        description={notifySupported ? 'Notify you when a task with a due time is due (while the app is open).' : 'Your browser doesn’t support notifications.'}
+        label="Reminder notifications"
+        description={notifySupported ? 'Show reminders as system notifications with Done and Snooze (while Todos is open). Reminders always show inside the app.' : 'Your browser doesn’t support notifications. Reminders still show inside the app.'}
         checked={notifySupported && prefs.reminders}
         disabled={!notifySupported}
         onChange={toggleReminders}

@@ -489,6 +489,68 @@ await check('pomodoro: P starts focus, session ends into a break, break ends, St
   await pc.close()
 })
 
+// ── Reminders (fake clock) ───────────────────────────────
+// Advance a fake clock in small steps until a condition holds (lets
+// timers, IndexedDB callbacks and renders interleave like real time)
+const tickUntil = async (page, cond, { step = 250, max = 40 } = {}) => {
+  for (let i = 0; i < max; i++) { if (await cond()) return true; await page.clock.runFor(step); await page.waitForTimeout(20) }
+  return cond()
+}
+const statusHas = (page, re) => async () => re.test(await page.getByRole('status').textContent())
+
+await check('reminders: fire with toast + notification, snooze, Done action, missed-while-closed, .ics', async () => {
+  const rc = await browser.newContext({ viewport: { width: 1280, height: 860 }, acceptDownloads: true })
+  await rc.grantPermissions(['notifications'], { origin: BASE })
+  const p = await rc.newPage()
+  await p.clock.install({ time: new Date(2026, 10, 26, 10, 0) })
+  await p.addInitScript(() => { if (!localStorage.getItem('todos-prefs')) localStorage.setItem('todos-prefs', JSON.stringify({ reminders: true })) })
+  await p.goto(BASE)
+  await p.evaluate(() => navigator.serviceWorker.ready)
+  await p.reload() // now controlled by the worker
+  const q = p.getByRole('textbox', { name: 'Quick add task' })
+  await q.waitFor(); await q.fill('Call the dentist today 10:30am'); await q.press('Enter')
+  await p.locator('.task-title', { hasText: 'Call the dentist' }).click()
+  await p.getByRole('combobox', { name: 'Reminder' }).selectOption('10')
+  await p.getByText(/Reminds you .*10:20/).waitFor()
+  // Add to calendar
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Add to calendar' }).click()])
+  const ics = await (await import('node:fs/promises')).readFile(await dl.path(), 'utf8')
+  assert(ics.includes('SUMMARY:Call the dentist') && ics.includes('DTSTART:20261126T103000') && ics.includes('TRIGGER:-PT10M'), 'ics: ' + ics.slice(0, 300))
+  await p.getByRole('button', { name: 'Close details' }).click()
+  assert(await p.locator('.task-row', { hasText: 'Call the dentist' }).locator('.task-meta').getByText(/Reminder:/).count() === 1, 'no bell')
+  // fire at 10:20
+  await p.clock.runFor(21 * 60000)
+  assert(await tickUntil(p, statusHas(p, /Reminder: “Call the dentist”/)), 'reminder did not fire at 10:20')
+  let notes = []
+  for (let i = 0; i < 30 && !notes.length; i++) {
+    notes = await p.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map(n => ({ title: n.title, body: n.body, actions: n.actions.map(a => a.action) })))
+    if (!notes.length) await p.waitForTimeout(100)
+  }
+  assert(notes.length === 1 && notes[0].actions.join() === 'done,snooze' && notes[0].body.includes('Call the dentist'), 'notifications: ' + JSON.stringify(notes))
+  // snooze from the toast → fires again 10 min later
+  await p.getByRole('status').getByRole('button', { name: 'Snooze 10 min' }).click()
+  await p.clock.runFor(5 * 60000)
+  assert(!(await p.getByRole('status').textContent()).includes('Reminder:'), 'fired too early')
+  await p.clock.runFor(6 * 60000)
+  assert(await tickUntil(p, statusHas(p, /Reminder: “Call the dentist”/)), 'snoozed reminder did not fire')
+  // "Done" from the notification (as the service worker would relay it)
+  const id = await p.locator('.task-row', { hasText: 'Call the dentist' }).getAttribute('data-task-id').catch(() => null)
+    ?? await p.locator('[data-task-id]', { hasText: 'Call the dentist' }).first().getAttribute('data-task-id')
+  await p.evaluate((taskId) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'REMINDER_ACTION', action: 'done', taskId } })), id)
+  await p.locator('.task-row:not([data-done])', { hasText: 'Call the dentist' }).waitFor({ state: 'detached', timeout: 3000 })
+  // missed while closed: a reminder at 11:00, app reopened at 12:00
+  await q.fill('Water the garden today 11:15am'); await q.press('Enter')
+  await p.locator('.task-title', { hasText: 'Water the garden' }).click()
+  await p.getByRole('combobox', { name: 'Reminder' }).selectOption('10')
+  await p.getByRole('button', { name: 'Close details' }).click()
+  const p2 = await rc.newPage()
+  await p.close()
+  await p2.clock.install({ time: new Date(2026, 10, 26, 12, 0) })
+  await p2.goto(BASE)
+  await p2.getByRole('status').getByText(/While Todos was closed, a reminder came due: “Water the garden”/).waitFor({ timeout: 5000 })
+  await rc.close()
+})
+
 // ── On-device AI ─────────────────────────────────────────
 await check('suggest subtasks without built-in AI: notice, quick version, one undo step', async () => {
   await page.mouse.click(700, 700)

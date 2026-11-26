@@ -45,6 +45,15 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'reminders', title: 'Reminders and calendars',
+    body: [
+      'Set a reminder in a task’s details: at the due time, 10 minutes, 1 hour or 1 day before, or at a specific time. All-day tasks remind at 9am.',
+      'Reminders show inside Todos while it’s open. Turn on Settings → Features → Reminder notifications to get system notifications with Done and Snooze 10 min.',
+      'Browsers can’t wake a web app at an exact time, so reminders that came due while Todos was closed are listed when you open it again.',
+      'For an alarm even when Todos is closed, use “Add to calendar” in a task’s details, or Download → Export to calendar (.ics) for every dated task. Repeats and reminders come along.',
+    ],
+  },
+  {
     id: 'focus', title: 'Timers and focus mode',
     body: [
       'Start a timer from a task row or its details; only one runs at a time and it keeps running if you close the app.',

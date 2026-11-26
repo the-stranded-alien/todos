@@ -3,7 +3,7 @@
 // completes, Delete deletes with Undo, Shift+F10 opens the actions menu);
 // the other controls are sibling buttons, never nested.
 import { useState, useCallback, useId } from 'react'
-import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw, Eye, Copy, Flag, Trash2, Pencil } from '../icons.jsx'
+import { Play, Square, ChevronRight, ChevronDown, Calendar, RotateCcw, Eye, Copy, Flag, Trash2, Pencil, Bell } from '../icons.jsx'
 import { IconButton } from './ui/IconButton.jsx'
 import { ContextMenu } from './ui/Menu.jsx'
 import { toast } from '../toast.js'
@@ -14,6 +14,7 @@ import { PRIORITY_VARS, tint, ink } from '../utils/colors.js'
 import { focusTaskRow } from '../utils/focus.js'
 import { usePrefs } from '../prefs.js'
 import { describeRecurrence } from '../utils/recurrence.js'
+import { describeReminder } from '../utils/reminders.js'
 
 const PRIORITY_COLORS = ['transparent', ...PRIORITY_VARS.slice(1)]
 const PRIORITY_NAMES = ['', 'Low priority', 'Medium priority', 'High priority']
@@ -141,7 +142,7 @@ export const TaskRow = ({
     .map(tid => state.tags.find(t => t.id === tid))
     .filter(Boolean)
 
-  const hasMeta = task.dueDate || task.recurring || tagObjs.length > 0 || timerDisplay
+  const hasMeta = task.dueDate || task.recurring || task.reminder || tagObjs.length > 0 || timerDisplay
 
   return (
     <li
@@ -237,6 +238,11 @@ export const TaskRow = ({
                 <Calendar size={10} />
                 {isOverdue && <span className="sr-only">Overdue, due </span>}
                 {formatDate(task.dueDate)}{task.dueTime ? ` · ${task.dueTime}` : ''}
+              </span>
+            )}
+            {task.reminder && (task.reminder.mode === 'at' || task.dueDate) && !task.completed && (
+              <span className="task-meta-item" title={describeReminder(task)}>
+                <Bell size={10} /><span className="sr-only">Reminder: {describeReminder(task)}</span>
               </span>
             )}
             {task.recurring && (

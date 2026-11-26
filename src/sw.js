@@ -64,36 +64,20 @@ self.addEventListener('fetch', (e) => {
   }
 })
 
-// ── Notification scheduling ────────────────────────────────
-self.addEventListener('message', (e) => {
-  if (e.data?.type === 'SCHEDULE_NOTIFICATION') {
-    const { taskId, title, body, timestamp } = e.data
-    const delay = timestamp - Date.now()
-    if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
-      setTimeout(() => {
-        self.registration.showNotification(title, {
-          body,
-          icon: '/icons/icon-192.png',
-          badge: '/icons/icon-192.png',
-          tag: `task-${taskId}`,
-          data: { taskId },
-        })
-      }, delay)
-    }
-  }
-})
-
+// ── Notification actions (reminders are scheduled by the page) ──
+// Done / Snooze / click: tell an open window, or open one that will act on it.
 self.addEventListener('notificationclick', (e) => {
   e.notification.close()
   const taskId = e.notification.data?.taskId
+  if (!taskId) return
+  const action = e.action || 'open'
   e.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((wins) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
       if (wins.length > 0) {
-        wins[0].focus()
-        wins[0].postMessage({ type: 'OPEN_TASK', taskId })
-      } else {
-        self.clients.openWindow(`/?task=${encodeURIComponent(taskId)}`)
+        wins[0].postMessage({ type: 'REMINDER_ACTION', action, taskId })
+        return wins[0].focus()
       }
+      return self.clients.openWindow(`/?task=${encodeURIComponent(taskId)}&reminder=${action}`)
     }),
   )
 })

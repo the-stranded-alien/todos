@@ -9,8 +9,8 @@ import { getTaskHistory } from '../db.js'
 import { DraftText } from './ui/DraftText.jsx'
 import { SuggestSubtasks } from './SuggestSubtasks.jsx'
 import { RepeatEditor } from './RepeatEditor.jsx'
+import { ReminderField } from './ReminderField.jsx'
 import { usePrefs } from '../prefs.js'
-import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
 import { renderMarkdown } from '../utils/markdown.js'
 import { IconButton } from './ui/IconButton.jsx'
@@ -101,10 +101,6 @@ export const TaskDetail = ({ onClose }) => {
     if (isTimerRunning) await stopTimer(task.id)
     else await startTimer(task.id)
   }, [isTimerRunning, task, startTimer, stopTimer])
-
-  const handleScheduleNotification = useCallback(() => {
-    if (task && prefs.reminders) scheduleNotification(task)
-  }, [task, prefs.reminders])
 
   const toggleTag = useCallback((tagId) => {
     if (!task) return
@@ -211,7 +207,6 @@ export const TaskDetail = ({ onClose }) => {
               value={task.dueDate || ''}
               onChange={e => {
                 update({ dueDate: e.target.value || null })
-                if (e.target.value && task.dueTime) handleScheduleNotification()
               }}
               aria-label="Due date"
             />
@@ -222,12 +217,14 @@ export const TaskDetail = ({ onClose }) => {
               value={task.dueTime || ''}
               onChange={e => {
                 update({ dueTime: e.target.value || null })
-                if (task.dueDate && e.target.value) handleScheduleNotification()
               }}
               aria-label="Due time"
             />
           </div>
         </div>
+
+        {/* Reminder */}
+        <ReminderField task={task} onChange={(reminder) => update({ reminder, reminderDone: null, snoozeUntil: null })} />
 
         {/* Project */}
         <div>

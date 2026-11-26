@@ -142,6 +142,13 @@ for (const width of WIDTHS) {
         await page.getByRole('combobox', { name: 'Repeats' }).selectOption('none').catch(() => {})
         await page.keyboard.press('Escape')
       }],
+      ['reminder set', async () => {
+        await page.locator('.task-title').first().click()
+        await page.getByRole('combobox', { name: 'Reminder' }).selectOption('at')
+      }, async () => {
+        await page.getByRole('combobox', { name: 'Reminder' }).selectOption('none').catch(() => {})
+        await page.keyboard.press('Escape')
+      }],
       ['filters open', async () => { await page.getByRole('button', { name: 'Filters' }).click() }, async () => { await page.getByRole('button', { name: 'Filters' }).click() }],
       ['command palette', async () => { await page.keyboard.press('Control+k'); await page.keyboard.type('go') }, async () => { await page.keyboard.press('Escape') }],
       ['shortcuts dialog', async () => { await page.keyboard.press('?') }, async () => { await page.keyboard.press('Escape') }],
