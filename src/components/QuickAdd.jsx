@@ -7,12 +7,14 @@ import { parseTaskInput } from '../utils/nlpParse.js'
 import { useSpeech } from '../hooks/useSpeech.js'
 import { PRIORITY_VARS, tint } from '../utils/colors.js'
 import { IconButton } from './ui/IconButton.jsx'
+import { usePrefs } from '../prefs.js'
 
 const PRIORITY_LABELS = ['none', 'low', 'med', 'high']
 const PRIORITY_COLORS = PRIORITY_VARS
 
 export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
   const { createTask, state } = useStore()
+  const prefs = usePrefs()
   const [value, setValue] = useState('')
   const [parsed, setParsed] = useState(null)
 
@@ -111,7 +113,7 @@ export const QuickAdd = ({ inputRef, defaultProjectId, defaultDueDate }) => {
           }}
           aria-label="Quick add task"
         />
-        {speechSupported && (
+        {speechSupported && prefs.voice && (
           <IconButton
             label={listening ? 'Stop voice input' : 'Add a task by voice'}
             icon={listening ? MicOff : Mic}

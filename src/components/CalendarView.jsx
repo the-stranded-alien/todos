@@ -7,6 +7,7 @@ import { useStore } from '../store/context.js'
 import { todayISO } from '../utils/dates.js'
 import { focusTaskDetail } from '../utils/focus.js'
 import { IconButton } from './ui/IconButton.jsx'
+import { usePrefs } from '../prefs.js'
 import { EmptyState } from './ui/EmptyState.jsx'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -22,7 +23,10 @@ export const CalendarView = () => {
 
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()
+  const { weekStart } = usePrefs()
   const firstDay = new Date(year, month, 1).getDay()
+  const lead = (firstDay - weekStart + 7) % 7 // empty cells before day 1
+  const weekdays = [...Array(7)].map((_, i) => (i + weekStart) % 7)
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const today = todayISO()
 
@@ -58,7 +62,7 @@ export const CalendarView = () => {
   }
 
   const cells = []
-  for (let i = 0; i < firstDay; i++) cells.push(null)
+  for (let i = 0; i < lead; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
   const rows = []
@@ -80,7 +84,7 @@ export const CalendarView = () => {
       <table className="cal" aria-labelledby="cal-title">
         <thead>
           <tr>
-            {DAYS_OF_WEEK.map((d, i) => <th key={d} scope="col" abbr={DAY_NAMES[i]}>{d}</th>)}
+            {weekdays.map(i => <th key={i} scope="col" abbr={DAY_NAMES[i]}>{DAYS_OF_WEEK[i]}</th>)}
           </tr>
         </thead>
         <tbody>

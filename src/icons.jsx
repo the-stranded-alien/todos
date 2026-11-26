@@ -11,7 +11,7 @@ import {
   Leaf as PLeaf, Microphone, VoiceOff, Moon as PMoon, Music as PMusic, Platte, MenuUnfoldOne, MenuFoldOne,
   Play as PPlay, Square as PSquare, Plus as PPlus, LoopOnce, RowHeight, Search as PSearch, Snowflake as PSnowflake,
   Star as PStar, Sun as PSun, SunOne, Sunrise as PSunrise, TagOne, Delete, Upload as PUpload, Waves as PWaves,
-  Close, Lightning, Inbox as PInbox, ChartHistogram, Edit, PreviewOpen, PreviewClose, Copy as PCopy,
+  Close, Lightning, Inbox as PInbox, ChartHistogram, Edit, PreviewOpen, PreviewClose, Copy as PCopy, SettingTwo, Keyboard as PKeyboard,
 } from '@icon-park/react'
 
 const SLOTS = ['#0a0b01', '#0a0b02', '#0a0b03', '#0a0b04'] // outer stroke, outer fill, inner stroke, inner fill
@@ -87,6 +87,8 @@ export const Plus = make(PPlus, 'Plus')
 export const RotateCcw = make(LoopOnce, 'RotateCcw')
 export const Rows3 = make(RowHeight, 'Rows3')
 export const Search = make(PSearch, 'Search')
+export const Settings = make(SettingTwo, 'Settings')
+export const Keyboard = make(PKeyboard, 'Keyboard')
 export const Snowflake = make(PSnowflake, 'Snowflake')
 export const Square = make(PSquare, 'Square')
 export const Star = make(PStar, 'Star')

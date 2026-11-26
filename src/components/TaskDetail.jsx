@@ -7,6 +7,7 @@ import {
 import { useStore } from '../store/context.js'
 import { getTaskHistory } from '../db.js'
 import { DraftText } from './ui/DraftText.jsx'
+import { usePrefs } from '../prefs.js'
 import { scheduleNotification } from '../hooks/useNotifications.js'
 import { useElapsed } from '../hooks/useElapsed.js'
 import { renderMarkdown } from '../utils/markdown.js'
@@ -44,6 +45,7 @@ export const TaskDetail = ({ onClose }) => {
   const [showTagDropdown, setShowTagDropdown] = useState(false)
 
   const isTimerRunning = task?.timerStartedAt != null
+  const prefs = usePrefs()
   const elapsed = useElapsed(task?.timerStartedAt ?? null)
   const taskId = task?.id
   const taskUpdatedAt = task?.updatedAt
@@ -89,8 +91,8 @@ export const TaskDetail = ({ onClose }) => {
   }, [isTimerRunning, task, startTimer, stopTimer])
 
   const handleScheduleNotification = useCallback(() => {
-    if (task) scheduleNotification(task)
-  }, [task])
+    if (task && prefs.reminders) scheduleNotification(task)
+  }, [task, prefs.reminders])
 
   const toggleTag = useCallback((tagId) => {
     if (!task) return
@@ -344,6 +346,7 @@ export const TaskDetail = ({ onClose }) => {
         </div>
 
         {/* Time tracking */}
+        {prefs.timers && (
         <div>
           <h3 className="detail-label" id="detail-time">Time tracked</h3>
           <div className="flex items-center gap-2 mt-1">
@@ -365,6 +368,7 @@ export const TaskDetail = ({ onClose }) => {
             )}
           </div>
         </div>
+        )}
 
         {/* Notes */}
         <div>

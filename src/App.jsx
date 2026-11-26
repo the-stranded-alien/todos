@@ -23,6 +23,8 @@ import { CommandPalette } from './components/CommandPalette.jsx'
 import { ShortcutsHelp } from './components/Modals/ShortcutsHelp.jsx'
 import { ProjectEditor } from './components/Modals/ProjectEditor.jsx'
 import { TagEditor } from './components/Modals/TagEditor.jsx'
+import { SettingsDialog } from './components/Settings/SettingsDialog.jsx'
+import { HelpDialog } from './components/HelpDialog.jsx'
 import { Toaster } from './components/ui/Toaster.jsx'
 import { toast } from './toast.js'
 import { TooltipLayer } from './components/ui/TooltipLayer.jsx'
@@ -42,6 +44,8 @@ const AppInner = () => {
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   const [showShortcuts, setShowShortcuts]       = useState(false)
+  const [settingsAt, setSettingsAt]             = useState(null) // null | section name
+  const [showHelp, setShowHelp]                 = useState(false)
   const [showCommandPalette, setCommandPalette] = useState(false)
   const [focusMode, setFocusMode]               = useState(false)
   const [projectEditor, setProjectEditor]       = useState(null) // null | 'new' | project
@@ -82,6 +86,7 @@ const AppInner = () => {
     { key: '/',  ctrl: false, shift: false, handler: () => window.dispatchEvent(new CustomEvent('focus-search')) },
     { key: '?',  ctrl: false, shift: false, handler: () => setShowShortcuts(true) },
     { key: 'k',  ctrl: true,  shift: false, handler: () => setCommandPalette(true) },
+    { key: ',',  ctrl: true,  shift: false, handler: () => setSettingsAt('Workspace'), allowInInput: true },
     { key: 'z',  ctrl: true,  shift: false, handler: async () => toast(await undo() ? 'Undone.' : 'Nothing to undo.') },
     { key: 'z',  ctrl: true,  shift: true,  handler: async () => toast(await redo() ? 'Redone.' : 'Nothing to redo.') },
     { key: 'Escape', ctrl: false, shift: false, allowInInput: true, handler: () => {
@@ -123,6 +128,8 @@ const AppInner = () => {
       {/* Header */}
       <Header
         onShowShortcuts={() => setShowShortcuts(true)}
+        onOpenHelp={() => setShowHelp(true)}
+        onOpenSettings={() => setSettingsAt('Workspace')}
         onOpenCommandPalette={() => setCommandPalette(true)}
         sidebarVisible={narrow ? drawerOpen : state.sidebarOpen}
         onToggleSidebar={toggleSidebar}
@@ -165,10 +172,22 @@ const AppInner = () => {
           onClose={() => setCommandPalette(false)}
           onNewProject={() => { setCommandPalette(false); setProjectEditor('new') }}
           onNewTag={() => { setCommandPalette(false); setTagEditor('new') }}
+          onOpenSettings={(section) => { setCommandPalette(false); setSettingsAt(section || 'Workspace') }}
+          onOpenHelp={() => { setCommandPalette(false); setShowHelp(true) }}
+          onShowShortcuts={() => { setCommandPalette(false); setShowShortcuts(true) }}
           quickAddRef={quickAddRef}
         />
       )}
       {showShortcuts && <ShortcutsHelp onClose={() => setShowShortcuts(false)} />}
+      {settingsAt && (
+        <SettingsDialog
+          initialSection={settingsAt}
+          onClose={() => setSettingsAt(null)}
+          onOpenHelp={() => { setSettingsAt(null); setShowHelp(true) }}
+          onOpenShortcuts={() => { setSettingsAt(null); setShowShortcuts(true) }}
+        />
+      )}
+      {showHelp && <HelpDialog onClose={() => setShowHelp(false)} />}
       {projectEditor && (
         <ProjectEditor
           project={projectEditor === 'new' ? null : projectEditor}

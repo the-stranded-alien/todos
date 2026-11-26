@@ -53,14 +53,14 @@ await check('sort menu changes sort and marks the choice', async () => {
 })
 
 await check('tooltip shows after hover, names the button, hides on pointer-down', async () => {
-  await page.getByRole('button', { name: 'Keyboard shortcuts' }).hover()
+  await page.getByRole('button', { name: 'Settings' }).hover()
   await page.waitForTimeout(500)
   const tip = page.getByRole('tooltip')
-  assert(await tip.textContent() === 'Keyboard shortcuts (?)', 'tooltip text: ' + await tip.textContent())
+  assert(await tip.textContent() === 'Settings (Ctrl/⌘+,)', 'tooltip text: ' + await tip.textContent())
   assert(await onScreen('[role=tooltip]'), 'tooltip off screen')
-  await page.mouse.down(); await page.mouse.up() // also clicks it: opens the shortcuts dialog
+  await page.mouse.down(); await page.mouse.up() // also clicks it: opens Settings
   assert(await page.getByRole('tooltip').count() === 0, 'tooltip still visible')
-  await page.getByRole('dialog', { name: 'Keyboard shortcuts' }).waitFor()
+  await page.getByRole('dialog', { name: 'Settings' }).waitFor()
   await page.keyboard.press('Escape')
 })
 
@@ -297,6 +297,85 @@ await check('real-keyboard "?" (Shift+/) opens shortcuts; Ctrl+Shift+Z redoes', 
   await page.locator('.task-title', { hasText: 'Redo me' }).waitFor({ timeout: 2000 })
 })
 
+// ── Settings and Help ────────────────────────────────────
+await check('settings: tabs work with arrow keys; theme cards apply themes', async () => {
+  await page.mouse.click(700, 700)
+  await page.keyboard.press('Control+,')
+  const dlg = page.getByRole('dialog', { name: 'Settings' })
+  await dlg.waitFor()
+  assert(await active() === 'Workspace', 'first tab not focused: ' + await active())
+  await page.keyboard.press('ArrowDown')
+  assert(await dlg.getByRole('tab', { name: 'Appearance' }).getAttribute('aria-selected') === 'true', 'arrow did not switch tab')
+  await dlg.getByRole('radio', { name: 'Sepia' }).click()
+  await page.waitForFunction(() => document.documentElement.classList.contains('theme-sepia'), null, { timeout: 2000 })
+  const previews = await dlg.locator('.theme-mini').count()
+  assert(previews >= 4, 'previews: ' + previews)
+  // previews render their own colours, not the page's
+  const bgs = await dlg.locator('.theme-card .theme-mini').evaluateAll(els => els.map(e => getComputedStyle(e).backgroundColor))
+  assert(new Set(bgs).size >= 3, 'previews look identical: ' + bgs.join(' | '))
+  await dlg.getByRole('switch', { name: /High contrast/ }).check()
+  assert(await page.evaluate(() => document.documentElement.classList.contains('high-contrast')), 'high contrast not applied')
+  await dlg.getByRole('switch', { name: /High contrast/ }).uncheck()
+  await dlg.getByRole('radio', { name: 'Light' }).click()
+})
+
+await check('settings: features and workspace options take effect', async () => {
+  const dlg = page.getByRole('dialog', { name: 'Settings' })
+  await dlg.getByRole('tab', { name: 'Features' }).click()
+  await dlg.getByRole('switch', { name: /Time tracking/ }).uncheck()
+  await page.keyboard.press('Escape')
+  assert(await page.getByRole('button', { name: 'Start timer' }).count() === 0, 'timer buttons still shown')
+  await page.keyboard.press('Control+,')
+  await dlg.getByRole('switch', { name: /Time tracking/ }).waitFor().catch(() => {})
+  await dlg.getByRole('tab', { name: 'Features' }).click()
+  await dlg.getByRole('switch', { name: /Time tracking/ }).check()
+  await dlg.getByRole('tab', { name: 'Workspace' }).click()
+  await dlg.getByRole('radio', { name: 'Monday' }).click()
+  await page.keyboard.press('Escape')
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('todos:set-view', { detail: 'calendar' })))
+  assert((await page.locator('.cal th').first().textContent()) === 'Mon', 'week does not start on Monday')
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('todos:set-view', { detail: 'inbox' })))
+})
+
+await check('settings → storage: counts, clear completed with Undo', async () => {
+  await page.keyboard.press('Control+,')
+  const dlg = page.getByRole('dialog', { name: 'Settings' })
+  await dlg.getByRole('tab', { name: 'Storage' }).click()
+  await dlg.getByText('Everything is stored in this browser').waitFor()
+  const clear = dlg.getByRole('button', { name: 'Clear completed' })
+  if (await clear.isDisabled()) {
+    await page.keyboard.press('Escape')
+    await page.locator('.task-row').first().locator('.custom-checkbox').click()
+    await page.waitForTimeout(500)
+    await page.keyboard.press('Control+,')
+    await dlg.getByRole('tab', { name: 'Storage' }).click()
+  }
+  const total = await page.evaluate(async () => (await new Promise(r => { const q = indexedDB.open('todos-db'); q.onsuccess = () => { const g = q.result.transaction('tasks').objectStore('tasks').count(); g.onsuccess = () => r(g.result) } })))
+  await dlg.getByRole('button', { name: 'Clear completed' }).click()
+  await page.waitForTimeout(300)
+  assert((await page.getByRole('status').textContent()).includes('Cleared'), 'toast: ' + await page.getByRole('status').textContent())
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await page.waitForTimeout(300)
+  const after = await page.evaluate(async () => (await new Promise(r => { const q = indexedDB.open('todos-db'); q.onsuccess = () => { const g = q.result.transaction('tasks').objectStore('tasks').count(); g.onsuccess = () => r(g.result) } })))
+  assert(after === total, `undo restored ${after} of ${total}`)
+  await page.keyboard.press('Escape')
+})
+
+await check('help: search filters topics and highlights matches', async () => {
+  await page.getByRole('button', { name: 'Help', exact: true }).click()
+  const dlg = page.getByRole('dialog', { name: 'Help' })
+  await dlg.waitFor()
+  const all = await dlg.locator('.help-topic').count()
+  await page.keyboard.type('backup')
+  await page.waitForTimeout(200)
+  const some = await dlg.locator('.help-topic').count()
+  assert(some > 0 && some < all, `sections ${some} of ${all}`)
+  assert(await dlg.locator('mark').count() > 0, 'no highlight')
+  await page.keyboard.type('zzqq')
+  await dlg.getByText('No help topics match.').waitFor()
+  await page.keyboard.press('Escape')
+})
+
 // ── Phone width ──────────────────────────────────────────
 const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true })
 phone.on('pageerror', e => errors.push(String(e)))
@@ -341,7 +420,7 @@ await check('phone: dialogs and menus fit on screen', async () => {
   const m = await phone.getByRole('menu').boundingBox()
   assert(m.x >= 0 && m.x + m.width <= 390, 'menu off screen')
   await phone.keyboard.press('Escape')
-  await phone.getByRole('button', { name: 'Keyboard shortcuts' }).click()
+  await phone.getByRole('button', { name: 'Help', exact: true }).click()
   const d = await phone.getByRole('dialog').boundingBox()
   assert(d.x >= 0 && d.x + d.width <= 390, 'dialog off screen')
   assert(await noHScroll(), 'horizontal scroll with dialog')

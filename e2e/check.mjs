@@ -134,6 +134,11 @@ for (const width of WIDTHS) {
       ['header menu', async () => { await page.getByRole('button', { name: 'Download and restore' }).click() }, async () => { await page.keyboard.press('Escape') }],
       ['task context menu', async () => { await page.locator('.task-row').first().click({ button: 'right' }) }, async () => { await page.keyboard.press('Escape') }],
       ['focus mode', async () => { await page.keyboard.press('f') }, async () => { await page.keyboard.press('Escape') }],
+      ...['Workspace', 'Appearance', 'Features', 'Storage', 'About'].map(tab => [`settings ${tab}`, async () => {
+        await page.keyboard.press('Control+,')
+        await page.getByRole('tab', { name: tab }).click()
+      }, async () => { await page.keyboard.press('Escape') }]),
+      ['help', async () => { await page.getByRole('button', { name: 'Help', exact: true }).click(); await page.keyboard.type('task') }, async () => { await page.keyboard.press('Escape') }],
     ]
     for (const theme of THEMES) {
       const [id, hc] = theme.split('+')
@@ -148,7 +153,7 @@ for (const width of WIDTHS) {
         await page.addScriptTag({ content: AXE })
         const res = await page.evaluate(async () => (await window.axe.run(document, { resultTypes: ['violations'] })).violations.map(v => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes[0]?.target?.join(' ') })))
         const tag = `${width}/${theme}/[${name}]`
-        if (name === 'command palette' || name === 'project dialog') await page.screenshot({ path: `${OUT}/${width}-${theme}-${name.replace(/ /g, '-')}.png` })
+        if (name === 'command palette' || name === 'project dialog' || name.startsWith('settings') || name === 'help') await page.screenshot({ path: `${OUT}/${width}-${theme}-${name.replace(/ /g, '-')}.png` })
         for (const v of res) failures.push(`${tag}: axe ${v.id} (${v.impact}) ×${v.n} e.g. ${v.sample}`)
         const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
         if (hscroll) failures.push(`${tag}: horizontal scroll`)

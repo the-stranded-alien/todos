@@ -32,6 +32,7 @@
         else if (t !== 'light' && t !== 'dark') c.add('theme-' + t)
         if (p.highContrast) c.add('high-contrast')
         document.documentElement.setAttribute('data-density', p.density || 'comfortable')
+        if (p.reduceMotion) document.documentElement.setAttribute('data-motion', 'reduce')
       })()
     </script>
   </head>

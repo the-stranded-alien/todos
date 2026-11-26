@@ -5,10 +5,24 @@ import { readPref, writePref } from './utils/storage.js'
 import { ALL_THEME_CLASSES, htmlClassesFor, getTheme } from './themes.js'
 
 export const DEFAULT_PREFS = {
+  // Appearance
   theme: null,          // null = follow the OS (light/dark) until the user picks one
   extraThemes: false,
   highContrast: false,
   density: 'comfortable',
+  reduceMotion: false,  // on top of the OS setting
+  // Workspace
+  defaultView: 'inbox',
+  weekStart: 0,         // 0 = Sunday, 1 = Monday
+  // Features
+  voice: true,
+  timers: true,
+  reminders: false,
+}
+
+export const prefersReducedMotion = () => {
+  if (prefs.reduceMotion) return true
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false }
 }
 
 const systemTheme = () => {
@@ -38,6 +52,8 @@ export const applyAppearance = (p = prefs) => {
   root.classList.remove(...ALL_THEME_CLASSES, 'high-contrast')
   root.classList.add(...htmlClassesFor(resolvedTheme(p), { highContrast: p.highContrast }))
   root.dataset.density = p.density
+  if (p.reduceMotion) root.dataset.motion = 'reduce'
+  else delete root.dataset.motion
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.content = getComputedStyle(root).getPropertyValue('--bg-app').trim() || meta.content
 }
@@ -56,9 +72,7 @@ export const usePrefs = () => useSyncExternalStore(subscribe, getPrefs)
 
 // Smooth theme change with the View Transitions API when available
 export const withThemeTransition = (update) => {
-  let reduce = false
-  try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { /* ignore */ }
-  if (!document.startViewTransition || reduce) { update(); return }
+  if (!document.startViewTransition || prefersReducedMotion()) { update(); return }
   document.startViewTransition(() => flushSync(update))
 }
 

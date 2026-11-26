@@ -122,12 +122,14 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - **Pre-existing bugs fixed:** undoing *complete* on a recurring task left the auto-created next occurrence behind (duplicate); deleting a parent orphaned its subtasks (bug 4); uncomplete wasn't undoable (bug 9); **redo (Ctrl/⌘+Shift+Z) never worked** (Shift makes `e.key` uppercase); **`?` didn't open shortcuts on real keyboards** (it needs Shift). Undo/redo hotkeys now confirm with a toast.
 - **Verified:** 55 unit tests (+8 store data-safety tests, +11 backup validation, +5 hotkey matching). 28/28 real-Chrome interaction checks (+6: two-tab sync, title edits as one undo step with native in-field undo, backup → restore → Undo round trip with a real download, invalid backup changes nothing, project delete → Undo, real-keyboard `?` and redo). Axe/clipping sweep 0 at 1280 + 390; contrast audit 0.
 
-### Batch 8 — Settings and Help ⬜
-- [ ] Settings dialog with side nav: Workspace (default view, week start), Appearance (theme picker with **live mini previews**, additional themes, high contrast, density, reduced motion), Features (voice input, timers, notifications, hide AI features), Storage (usage, persist, backup/restore, clear completed with Undo), About (privacy: "No server involved", version, links)
-- [ ] `role="switch"` toggles with label + one-line description
-- [ ] Help dialog: sectioned how-to (quick-add syntax, views, timers, focus mode, shortcuts, data/privacy) with search
-- [ ] Header: Settings button; Download ▾ menu (Backup JSON, Export CSV, Restore…)
-- [ ] Command palette gets commands for every setting, theme, and help
+### Batch 8 — Settings and Help ✅
+- [x] Settings dialog with side nav (vertical tabs, arrow keys): Workspace (open-on view, week start), Appearance (theme picker with **live mini previews**, additional themes, high contrast, density, reduce motion), Features (voice input, time tracking, due-time reminders), Storage (usage meter, persistent storage, backup/restore, saved copies, clear completed with Undo), About (privacy: "No server involved", version, build date). "Hide AI features" moves to Batch 10 with the AI feature itself
+- [x] `role="switch"` toggles with label + one-line description
+- [x] Help dialog: sectioned how-to (quick-add syntax, views, timers, focus mode, shortcuts, data/privacy) with search
+- [x] Header: Help and Settings buttons (Ctrl/⌘+, opens Settings); Download ▾ menu (Download backup, Export CSV, Restore…)
+- [x] Command palette gets commands for every setting, theme, and help
+- **Notes:** Live previews work because the token block also applies to `.theme-scope`, so each preview resets the full token set locally and its theme classes apply on top (verified: every card renders in its own colours, and high contrast shows through). Week start affects the calendar columns and the stats week. "Reduce motion" sets `data-motion="reduce"` (the same rules as the OS setting) and skips View Transitions. Reminders request permission only from the switch and explain if they're blocked. Backup logic now lives in one `useBackup` hook shared by the header and Settings. Restoring a saved copy also snapshots first and offers Undo.
+- **Verified:** 32/32 interaction checks (+4: Settings tabs and theme cards, features/workspace options take effect, Storage clear-completed → Undo restores the exact count in IndexedDB, Help search and highlight). Axe now also covers all 5 Settings tabs and Help: **0 problems** at 1280 and 390 in light and dark+hc (found and fixed: two unnamed search landmarks, and Help topics creating a duplicate "Views" landmark). Contrast audit 0.
 
 ### Batch 9 — PWA and browser platform ⬜
 - [ ] `manifest.webmanifest` (`id`, `scope`, `display: standalone`, `theme_color`, SVG + PNG icons, shortcuts: New task, Today)
@@ -143,6 +145,7 @@ Work happens in small batches. After each batch: `eslint .` clean → `vitest ru
 - [ ] Non-AI fallback (split notes lines / bullet list into subtasks)
 - [ ] "Unsupported" notice with requirements instead of hiding silently; "Hide AI features" switch removes every AI button
 - [ ] UI says "Runs on your device — nothing is sent anywhere"
+- [ ] Settings → Features: "Hide AI features" switch (moved here from Batch 8)
 
 ### Batch 11 — Final verification sweep ⬜
 - [ ] Browser sweep: every view × every theme × high contrast — axe, console errors, icon scan, horizontal scroll, header overlap at 4 widths
@@ -185,4 +188,5 @@ Guideline sections written for a Markdown editor that don't fit a task manager: 
 | 4 — Shared components | 2026-11-26 | `a43a2da` | lint ✔ · 31 tests ✔ · build ✔ · 13/13 interaction checks ✔ · only Batch-5 axe items left |
 | 5 — Accessibility | 2026-11-26 | `d9e6e97` | lint ✔ · 31 tests ✔ · build ✔ · 18/18 interactions ✔ · axe 0 in 28 variants × 15 views/states |
 | 6 — Layout & responsive | 2026-11-26 | `4c2aa9d` | lint ✔ · 31 tests ✔ · build ✔ · 22/22 interactions ✔ · 0 problems at 4 widths |
-| 7 — Never lose data | 2026-11-26 | _see git log_ | lint ✔ · 55 tests ✔ · build ✔ · 28/28 interactions ✔ · axe 0 |
+| 7 — Never lose data | 2026-11-26 | `4e5fe0f` | lint ✔ · 55 tests ✔ · build ✔ · 28/28 interactions ✔ · axe 0 |
+| 8 — Settings & Help | 2026-11-26 | _see git log_ | lint ✔ · 55 tests ✔ · build ✔ · 32/32 interactions ✔ · axe 0 incl. Settings/Help |

@@ -12,6 +12,7 @@ import { todayISO, addDaysISO, parseLocalISO } from '../utils/dates.js'
 import { useElapsed } from '../hooks/useElapsed.js'
 import { PRIORITY_VARS, tint, ink } from '../utils/colors.js'
 import { focusTaskRow } from '../utils/focus.js'
+import { usePrefs } from '../prefs.js'
 
 const PRIORITY_COLORS = ['transparent', ...PRIORITY_VARS.slice(1)]
 const PRIORITY_NAMES = ['', 'Low priority', 'Medium priority', 'High priority']
@@ -51,6 +52,7 @@ export const TaskRow = ({
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleVal, setTitleVal] = useState(task.title)
   const metaId = useId()
+  const prefs = usePrefs()
 
   const subtasks = state.tasks.filter(t => t.parentId === task.id && !t.completed)
   const hasSubtasks = subtasks.length > 0
@@ -254,7 +256,7 @@ export const TaskRow = ({
           </div>
         </div>
 
-        <IconButton
+        {(prefs.timers || isTimerRunning) && <IconButton
           label={isTimerRunning ? 'Stop timer' : 'Start timer'}
           icon={isTimerRunning ? Square : Play}
           size={13}
@@ -264,7 +266,7 @@ export const TaskRow = ({
           className={isTimerRunning ? '' : 'row-reveal'}
           tooltipAlign="end"
           onClick={handleTimerToggle}
-        />
+        />}
       </div>
 
       {menuAt && (

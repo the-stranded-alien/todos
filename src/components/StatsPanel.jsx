@@ -1,6 +1,7 @@
 // ── Statistics panel ───────────────────────────────────────
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/context.js'
+import { usePrefs } from '../prefs.js'
 
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
@@ -10,9 +11,13 @@ export const StatsPanel = () => {
 
   const [now] = useState(() => Date.now())
 
+  const { weekStart: firstWeekday } = usePrefs()
+  // Day indexes in display order (Sunday- or Monday-first)
+  const order = useMemo(() => [...Array(7)].map((_, i) => (i + firstWeekday) % 7), [firstWeekday])
+
   const stats = useMemo(() => {
     const weekStart = new Date(now)
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() - firstWeekday + 7) % 7))
     weekStart.setHours(0, 0, 0, 0)
 
     const completedThisWeek = tasks.filter(t => t.completedAt && t.completedAt >= weekStart.getTime())
@@ -52,7 +57,7 @@ export const StatsPanel = () => {
     const maxCount = Math.max(...completedByDay, 1)
 
     return { completedByDay, completionRate, streak, timeThisWeek, maxDay: DAY_NAMES[maxIdx], maxCount, completedThisWeek: completedThisWeek.length }
-  }, [tasks, now])
+  }, [tasks, now, firstWeekday])
 
   const formatTime = (ms) => {
     const h = Math.floor(ms / 3600000)
@@ -123,7 +128,7 @@ export const StatsPanel = () => {
           aria-labelledby="week-chart"
           aria-describedby="week-chart-desc"
         >
-          {stats.completedByDay.map((count, i) => (
+          {order.map(i => [stats.completedByDay[i], i]).map(([count, i]) => (
             <div key={i} className="flex flex-col items-center gap-1 flex-1">
               <span style={{ color: 'var(--text-3)', fontSize: '.65rem' }}>{count > 0 ? count : ''}</span>
               <div
@@ -140,7 +145,7 @@ export const StatsPanel = () => {
           ))}
         </div>
         <p id="week-chart-desc" className="sr-only">
-          {stats.completedByDay.map((c, i) => `${DAY_NAMES[i]}: ${c}`).join(', ')}
+          {order.map(i => `${DAY_NAMES[i]}: ${stats.completedByDay[i]}`).join(', ')}
         </p>
         <p style={{ color: 'var(--text-3)', fontSize: '.75rem', marginTop: 12 }}>
           {stats.completedThisWeek > 0

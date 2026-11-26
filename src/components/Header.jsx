@@ -1,19 +1,16 @@
 // ── Header ─────────────────────────────────────────────────
 import { useRef, useEffect } from 'react'
-import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft, X } from '../icons.jsx'
+import { Search, Command, HelpCircle, Download, Upload, CheckSquare, PanelLeftClose, PanelLeft, X, Settings } from '../icons.jsx'
 import { useStore } from '../store/context.js'
-import { usePrefs, setPrefs, getPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
-import { makeBackup, validateBackup } from '../utils/backup.js'
+import { usePrefs, setPrefs, resolvedTheme, withThemeTransition } from '../prefs.js'
+import { useBackup } from '../hooks/useBackup.js'
 import { getTheme, nextTheme } from '../themes.js'
 import { ThemeIcon } from './ThemeIcon.jsx'
 import { IconButton } from './ui/IconButton.jsx'
 import { MenuButton } from './ui/Menu.jsx'
-import * as dbUtils from '../db.js'
-import { exportJSON, exportCSV } from '../utils/export.js'
-import { toast } from '../toast.js'
 
-export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, onToggleSidebar }) => {
-  const { state, dispatch, importData, undo } = useStore()
+export const Header = ({ onOpenHelp, onOpenSettings, onOpenCommandPalette, sidebarVisible, onToggleSidebar }) => {
+  const { state, dispatch } = useStore()
   const prefs = usePrefs()
   const theme = resolvedTheme(prefs)
   const upcoming = nextTheme(theme, prefs.extraThemes)
@@ -28,43 +25,7 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, 
     return () => window.removeEventListener('focus-search', focus)
   }, [])
 
-  const handleExportJSON = async () => {
-    const data = await dbUtils.exportAll()
-    exportJSON(makeBackup(data, getPrefs()))
-    toast({ message: `Backup downloaded: ${data.tasks.length} tasks, ${data.projects.length} projects, ${data.tags.length} tags.`, tone: 'success' })
-  }
-
-  const handleExportCSV = async () => {
-    const data = await dbUtils.exportAll()
-    exportCSV(data.tasks, data.projects, data.tags)
-    toast({ message: 'CSV downloaded.', tone: 'success' })
-  }
-
-  const handleImport = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    let raw
-    try {
-      raw = JSON.parse(await file.text())
-    } catch {
-      toast({ message: `“${file.name}” isn’t a Todos backup: it isn’t valid JSON.`, tone: 'warning' })
-      return
-    }
-    const result = validateBackup(raw)
-    if (!result.ok) {
-      toast({ message: `Couldn’t restore “${file.name}”. ${result.error}`, tone: 'warning', duration: 9000 })
-      return
-    }
-    await importData(result.data)
-    if (result.settings) setPrefs(result.settings)
-    toast({
-      message: `Restored ${result.data.tasks.length} tasks from “${file.name}”. Your previous data was saved first.`,
-      tone: 'success',
-      action: { label: 'Undo', onClick: undo },
-      duration: 10000,
-    })
-  }
+  const { downloadBackup, downloadCSV, restoreFromInput } = useBackup()
 
   const themeLabel = `Theme: ${getTheme(theme).label} (switch to ${getTheme(upcoming).label})`
 
@@ -86,7 +47,7 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, 
         </div>
       </div>
 
-      <div className="header-search relative" role="search">
+      <div className="header-search relative" role="search" aria-label="Search tasks">
         <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
         <input
           ref={searchRef}
@@ -118,14 +79,15 @@ export const Header = ({ onShowShortcuts, onOpenCommandPalette, sidebarVisible, 
           icon={Download}
           buttonProps={{ 'data-feat': 'success' }}
           items={[
-            { label: 'Download backup (.json)', icon: Download, onSelect: handleExportJSON },
-            { label: 'Export tasks as CSV', icon: Download, onSelect: handleExportCSV },
+            { label: 'Download backup (.json)', icon: Download, onSelect: downloadBackup },
+            { label: 'Export tasks as CSV', icon: Download, onSelect: downloadCSV },
             { separator: true },
             { label: 'Restore from backup…', icon: Upload, onSelect: () => fileRef.current?.click() },
           ]}
         />
-        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImport} aria-label="Restore from backup file" tabIndex={-1} />
-        <IconButton label="Keyboard shortcuts" tooltip="Keyboard shortcuts (?)" icon={HelpCircle} onClick={onShowShortcuts} />
+        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={restoreFromInput} aria-label="Restore from backup file" tabIndex={-1} />
+        <IconButton label="Help" icon={HelpCircle} onClick={onOpenHelp} />
+        <IconButton label="Settings" tooltip="Settings (Ctrl/⌘+,)" icon={Settings} onClick={onOpenSettings} />
         <IconButton label={themeLabel} onClick={cycleTheme} tooltipAlign="end">
           <ThemeIcon key={theme} theme={theme} size={16} className="theme-icon-enter" />
         </IconButton>

@@ -9,6 +9,7 @@ import { parseLocalISO, toLocalISO } from './utils/dates.js'
 import { DEFAULT_SWATCH } from './utils/colors.js'
 import { nanoid } from './utils/nanoid.js'
 import { onRemoteChange } from './sync.js'
+import { getPrefs } from './prefs.js'
 import * as db from './db.js'
 import { addHistory } from './db.js'
 
@@ -155,7 +156,7 @@ const history = (taskId, action, diff) =>
 
 // ── Provider ───────────────────────────────────────────────
 export const StoreProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const [state, dispatch] = useReducer(reducer, initialState, (s) => ({ ...s, view: getPrefs().defaultView || 'inbox' }))
   const undoStack = useRef([])
   const redoStack = useRef([])
   const group = useRef(null)

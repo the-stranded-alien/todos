@@ -1,6 +1,6 @@
 // ── Command palette ────────────────────────────────────────
 import { useState, useCallback, useMemo, useRef, useEffect, useId } from 'react'
-import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare, Download } from '../icons.jsx'
+import { Search, Plus, Folder, Tag, LayoutList, Sun, Palette, Contrast, Rows3, CheckSquare, Download, Settings, HelpCircle, Keyboard } from '../icons.jsx'
 import { useStore } from '../store/context.js'
 import { Dialog } from './ui/Dialog.jsx'
 import { requestPersist, PERSIST_DENIED_HELP } from '../utils/persist.js'
@@ -31,7 +31,7 @@ const fuzzyMatch = (str, query) => {
   return qi === q.length
 }
 
-export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef }) => {
+export const CommandPalette = ({ onClose, onNewProject, onNewTag, onOpenSettings, onOpenHelp, onShowShortcuts, quickAddRef }) => {
   const { state, dispatch } = useStore()
   const prefs = usePrefs()
   const appearanceCmds = useMemo(() => [
@@ -40,6 +40,13 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
     })),
     { id: 'toggle-extra-themes', label: prefs.extraThemes ? 'Hide additional themes' : 'Show additional themes', icon: Palette, group: 'Appearance' },
     { id: 'toggle-high-contrast', label: prefs.highContrast ? 'Turn off high contrast' : 'Turn on high contrast', icon: Contrast, group: 'Appearance' },
+    { id: 'settings:Workspace', label: 'Open settings', icon: Settings, group: 'App' },
+    { id: 'settings:Appearance', label: 'Settings: Appearance and themes', icon: Palette, group: 'App' },
+    { id: 'settings:Features', label: 'Settings: Features', icon: Settings, group: 'App' },
+    { id: 'settings:Storage', label: 'Settings: Storage and backups', icon: Settings, group: 'App' },
+    { id: 'help', label: 'Open help', icon: HelpCircle, group: 'App' },
+    { id: 'shortcuts', label: 'Keyboard shortcuts', icon: Keyboard, group: 'App' },
+    { id: 'toggle-reduce-motion', label: prefs.reduceMotion ? 'Allow animations' : 'Reduce motion', icon: Settings, group: 'Appearance' },
     { id: 'persist-storage', label: 'Keep my data on this device (persistent storage)', icon: Download, group: 'Data' },
     { id: 'toggle-density', label: prefs.density === 'compact' ? 'Use comfortable density' : 'Use compact density', icon: Rows3, group: 'Appearance' },
   ], [prefs])
@@ -86,6 +93,10 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
     else if (item.id.startsWith('theme:')) { onClose(); withThemeTransition(() => setPrefs({ theme: item.id.slice(6) })) }
     else if (item.id === 'toggle-extra-themes') { setPrefs(p => ({ extraThemes: !p.extraThemes })); onClose() }
     else if (item.id === 'toggle-high-contrast') { setPrefs(p => ({ highContrast: !p.highContrast })); onClose() }
+    else if (item.id.startsWith('settings:')) onOpenSettings(item.id.slice(9))
+    else if (item.id === 'help') onOpenHelp()
+    else if (item.id === 'shortcuts') onShowShortcuts()
+    else if (item.id === 'toggle-reduce-motion') { setPrefs(p => ({ reduceMotion: !p.reduceMotion })); onClose() }
     else if (item.id === 'persist-storage') {
       onClose()
       requestPersist().then(r => toast(
@@ -108,7 +119,7 @@ export const CommandPalette = ({ onClose, onNewProject, onNewTag, quickAddRef })
       dispatch({ type: 'SELECT_TASK', id: item.taskId })
       onClose()
     }
-  }, [onClose, onNewProject, onNewTag, quickAddRef, dispatch])
+  }, [onClose, onNewProject, onNewTag, onOpenSettings, onOpenHelp, onShowShortcuts, quickAddRef, dispatch])
 
   // Group items; `ordered` is the display order used for highlighting and Enter
   const { groups, ordered } = useMemo(() => {
